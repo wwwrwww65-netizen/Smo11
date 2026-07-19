@@ -82,9 +82,11 @@ Active analysis of the cell structures yields high fidelity markers:
         document.body.appendChild(popup);
         setTimeout(() => popup.remove(), 2500);
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("Upload specimen error:", err);
-        alert(language === 'ar' ? 'فشل الرفع السحابي لصورة العينة' : 'Failed to upload specimen image to Appwrite storage.');
+        const uploadErrorAr = `❌ فشل الرفع إلى Appwrite. تحقق من المفاتيح، والربط، ونجاح الاتصال، وحزمة التخزين (Bucket ID) وصلاحيات الوصول في لوحة التحكم.\nتفاصيل الخطأ: ${err.message || err}`;
+        const uploadErrorEn = `❌ Upload failed to Appwrite. Check keys, dynamic link, storage bucket ID, and bucket permission configurations.\nDetails: ${err.message || err}`;
+        alert(language === 'ar' ? uploadErrorAr : uploadErrorEn);
       } finally {
         setIsUploading(false);
       }
@@ -112,9 +114,11 @@ Active analysis of the cell structures yields high fidelity markers:
       try {
         const uploadResult = await uploadFileToAppwrite(file);
         setImageSrc(uploadResult.fileUrl);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Drop uploader error:", err);
-        alert(language === 'ar' ? 'فشل الرفع السحابي' : 'Cloud upload failed.');
+        const uploadErrorAr = `❌ فشل الرفع إلى Appwrite. تحقق من المفاتيح، والربط، ونجاح الاتصال، وحزمة التخزين (Bucket ID) وصلاحيات الوصول في لوحة التحكم.\nتفاصيل الخطأ: ${err.message || err}`;
+        const uploadErrorEn = `❌ Upload failed to Appwrite. Check keys, dynamic link, storage bucket ID, and bucket permission configurations.\nDetails: ${err.message || err}`;
+        alert(language === 'ar' ? uploadErrorAr : uploadErrorEn);
       } finally {
         setIsUploading(false);
       }
@@ -149,8 +153,12 @@ Active analysis of the cell structures yields high fidelity markers:
       // Feed either local file or fetch URL
       const response = await performBioAiAnalysis(prompt, imageFile, geminiKey);
       setAiAnalysisResult(response);
-    } catch {
-      setAiAnalysisResult("Failed to invoke visual intelligence. Check Gemini connection settings.");
+    } catch (err: any) {
+      console.error("Vision Analysis error:", err);
+      const errMsg = language === 'ar'
+        ? `عذراً، حدث خطأ أثناء تشغيل التحليل. الرجاء التحقق من كود Gemini في الإعدادات وتأكيد صلاحية الاتصال.\nتفاصيل الخطأ العلمي: ${err.message || err}`
+        : `Error running analysis. Please verify your Gemini Key in Settings and confirm api quota.\nDetails: ${err.message || err}`;
+      setAiAnalysisResult(errMsg);
     } finally {
       setIsAnalyzing(false);
     }
@@ -180,21 +188,21 @@ Active analysis of the cell structures yields high fidelity markers:
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleZoomIn}
-                  className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                  className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                   title="Zoom In"
                 >
                   <ZoomIn className="h-4 w-4" />
                 </button>
                 <button
                   onClick={handleZoomOut}
-                  className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                  className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                   title="Zoom Out"
                 >
                   <ZoomOut className="h-4 w-4" />
                 </button>
                 <button
                   onClick={handleResetZoom}
-                  className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                  className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                   title="Reset Lens Frame"
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -205,7 +213,7 @@ Active analysis of the cell structures yields high fidelity markers:
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   {isUploading ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -341,7 +349,7 @@ Active analysis of the cell structures yields high fidelity markers:
               <button
                 onClick={runAiVisionAnalysis}
                 disabled={isAnalyzing || isUploading}
-                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 transition-all hover:scale-[1.01]"
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 transition-all hover:scale-[1.01] cursor-pointer"
               >
                 {isAnalyzing ? (
                   <span className="h-4 w-4 animate-spin border-2 border-white border-t-transparent rounded-full" />

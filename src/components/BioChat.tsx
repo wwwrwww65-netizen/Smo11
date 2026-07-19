@@ -34,34 +34,51 @@ export const BioChat: React.FC = () => {
   // Load chats from Appwrite Database
   const fetchChats = useCallback(async () => {
     setIsAiAnalyzing(true);
-    const history = await getChatHistory();
-    if (history.length === 0) {
-      const welcomeTxt = language === 'ar'
-        ? `أهلاً بكِ في المساعد العلمي الذكي. يمكنكِ سؤالي عن أي دراسة علمية، تحليل عينة مجهرية، أو تلخيص للبحوث المعقدة.
+    try {
+      const history = await getChatHistory();
+      if (history.length === 0) {
+        const welcomeTxt = language === 'ar'
+          ? `أهلاً بكِ في المساعد العلمي الذكي. يمكنكِ سؤالي عن أي دراسة علمية، تحليل عينة مجهرية، أو تلخيص للبحوث المعقدة.
 
 **أمثلة على ما يمكنني القيام به:**
 * تلخيص أوراق الـ PDF واستخراج مصفوفات التحليل.
 * تفسير نتائج انقسام الخلايا وحساب المؤشرات الحيوية.
 * تقديم فرضيات علمية حول مقاومة البكتيريا للمضادات.`
-        : `Welcome to the intelligent Bio-Chat space. I am fully prepared to process complex genomic inquiries, summarize medical publications, or evaluate experimental data models.
+          : `Welcome to the intelligent Bio-Chat space. I am fully prepared to process complex genomic inquiries, summarize medical publications, or evaluate experimental data models.
 
 **How I can assist you today:**
 * Compress long scientific PDFs and parse core research variables.
 * Explain mitotic anomalies or cell kinetics.
 * Draft high-precision hypothesis structures for your wet-lab.`;
+
+        setMessages([
+          {
+            id: 'welcome-msg',
+            sender: 'assistant',
+            text: welcomeTxt,
+            timestamp: new Date()
+          }
+        ]);
+      } else {
+        setMessages(history);
+      }
+    } catch (err: any) {
+      console.error("Failed to load chat history", err);
+      const errorMsg = language === 'ar'
+        ? `⚠️ فشل الاتصال بقاعدة بيانات Appwrite. الرجاء التحقق من قيم الاتصال (Endpoint, Project ID, Database ID) في الإعدادات للتأكد من المزامنة السحابية بشكل صحيح.\nتفاصيل الخطأ: ${err.message || err}`
+        : `⚠️ Failed to establish cloud sync with Appwrite. Please verify your connection keys (Endpoint, Project ID, Database ID) in Settings.\nError: ${err.message || err}`;
       
       setMessages([
         {
-          id: 'welcome-msg',
+          id: 'error-load-msg',
           sender: 'assistant',
-          text: welcomeTxt,
+          text: errorMsg,
           timestamp: new Date()
         }
       ]);
-    } else {
-      setMessages(history);
+    } finally {
+      setIsAiAnalyzing(false);
     }
-    setIsAiAnalyzing(false);
   }, [language]);
 
   useEffect(() => {
@@ -90,9 +107,11 @@ export const BioChat: React.FC = () => {
         attachedName = uploadedFile.name;
         attachedType = uploadedFile.type.includes('image') ? 'image' : 'pdf';
         finalPrompt += `\n\n[الملف المرفوع سحابياً: ${uploadResult.fileUrl}]`;
-      } catch (err) {
+      } catch (err: any) {
         console.error("Upload error:", err);
-        alert(language === 'ar' ? 'فشل رفع الملف إلى Appwrite Storage' : 'Failed to upload file to Appwrite storage bucket.');
+        const uploadErrorAr = `❌ فشل الرفع إلى Appwrite. تحقق من المفاتيح، والربط، ونجاح الاتصال، وحزمة التخزين (Bucket ID) وصلاحيات الوصول في لوحة التحكم.\nتفاصيل الخطأ: ${err.message || err}`;
+        const uploadErrorEn = `❌ Upload failed to Appwrite. Check keys, dynamic link, storage bucket ID, and bucket permission configurations.\nDetails: ${err.message || err}`;
+        alert(language === 'ar' ? uploadErrorAr : uploadErrorEn);
         setIsUploading(false);
         setIsAiAnalyzing(false);
         return;
@@ -102,8 +121,12 @@ export const BioChat: React.FC = () => {
 
     const userMessageText = prompt || (uploadedFile ? `[File Attachment: ${uploadedFile.name}]` : '');
     
-    // Save User message to Appwrite Database
-    await saveChatMessage('user', userMessageText);
+    // Save User message to Appwrite Database (graceful handling if save fails)
+    try {
+      await saveChatMessage('user', userMessageText);
+    } catch (dbErr) {
+      console.warn("Could not sync message to cloud database", dbErr);
+    }
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -134,16 +157,20 @@ export const BioChat: React.FC = () => {
       const responseText = await performBioAiAnalysis(finalPrompt, null, geminiKey);
       
       // Save Assistant message to Appwrite Database
-      await saveChatMessage('assistant', responseText);
+      try {
+        await saveChatMessage('assistant', responseText);
+      } catch (dbErr) {
+        console.warn("Could not sync assistant response to cloud database", dbErr);
+      }
 
       setMessages((prev) =>
         prev.map((m) => m.id === aiMessageId ? { ...m, text: responseText, isAiAnalyzing: false } : m)
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("AI service error:", err);
       const errMsg = language === 'ar' 
-        ? "عذراً، حدث خطأ أثناء تشغيل التحليل. الرجاء التحقق من كود Gemini في الإعدادات."
-        : "Error running analysis. Please verify your Gemini Key in Settings.";
+        ? `عذراً، حدث خطأ أثناء تشغيل التحليل. الرجاء التحقق من كود Gemini في الإعدادات وتأكيد صلاحية الاتصال.\nتفاصيل الخطأ العلمي: ${err.message || err}`
+        : `Error running analysis. Please verify your Gemini Key in Settings and confirm api quota.\nDetails: ${err.message || err}`;
       setMessages((prev) =>
         prev.map((m) => m.id === aiMessageId ? { ...m, text: errMsg, isAiAnalyzing: false } : m)
       );
@@ -161,16 +188,21 @@ export const BioChat: React.FC = () => {
   const clearChat = async () => {
     if (confirm(language === 'ar' ? 'هل أنتِ متأكدة من مسح سجل المحادثات بالكامل سحابياً؟' : 'Are you sure you want to permanently clear cloud chat history?')) {
       setIsAiAnalyzing(true);
-      await clearAllChatHistory();
-      setMessages([
-        {
-          id: 'welcome-msg',
-          sender: 'assistant',
-          text: language === 'ar' ? 'تمت إعادة تهيئة الجلسة العلمية ومسح السجل سحابياً بنجاح.' : 'Scientific session restarted and cloud logs purged.',
-          timestamp: new Date()
-        }
-      ]);
-      setIsAiAnalyzing(false);
+      try {
+        await clearAllChatHistory();
+        setMessages([
+          {
+            id: 'welcome-msg',
+            sender: 'assistant',
+            text: language === 'ar' ? 'تمت إعادة تهيئة الجلسة العلمية ومسح السجل سحابياً بنجاح.' : 'Scientific session restarted and cloud logs purged.',
+            timestamp: new Date()
+          }
+        ]);
+      } catch (err: any) {
+        alert(language === 'ar' ? `فشل مسح السجل: ${err.message || err}` : `Failed to clear chat logs: ${err.message || err}`);
+      } finally {
+        setIsAiAnalyzing(false);
+      }
     }
   };
 

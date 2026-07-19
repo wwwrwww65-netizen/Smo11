@@ -1,14 +1,21 @@
 import { Client, Databases, Storage, Account, ID, Query } from 'appwrite';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Default Appwrite configurations reading from environment variables VITE_... with hardcoded fallback values for production
-export const DEFAULT_APPWRITE_ENDPOINT = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
-export const DEFAULT_APPWRITE_PROJECT_ID = import.meta.env.VITE_APPWRITE_PROJECT_ID || '6a5c48fb00236c305a1c';
-export const DEFAULT_APPWRITE_DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID || '6a5c43ce003718f2ed71';
-export const DEFAULT_APPWRITE_STORAGE_BUCKET_ID = import.meta.env.VITE_APPWRITE_STORAGE_BUCKET_ID || '6a5c4e1c001a2be6ae0d';
+import {
+  DEFAULT_APPWRITE_ENDPOINT,
+  DEFAULT_APPWRITE_PROJECT_ID,
+  DEFAULT_APPWRITE_DATABASE_ID,
+  DEFAULT_APPWRITE_STORAGE_BUCKET_ID,
+  DEFAULT_GEMINI_KEY
+} from '../config';
 
-// Default Gemini API key provided with fallback to standard environment variable VITE_GEMINI_KEY
-export const DEFAULT_GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY || 'AQ.Ab8RN6Jt2WHp-x_exlAVz7I_CcvLiad2JHZ6ODgX152sXpz-Pw';
+export {
+  DEFAULT_APPWRITE_ENDPOINT,
+  DEFAULT_APPWRITE_PROJECT_ID,
+  DEFAULT_APPWRITE_DATABASE_ID,
+  DEFAULT_APPWRITE_STORAGE_BUCKET_ID,
+  DEFAULT_GEMINI_KEY
+};
 
 // Helper getters to retrieve dynamic configurations from LocalStorage or fallback to defaults
 export const getAppwriteEndpoint = (): string => {

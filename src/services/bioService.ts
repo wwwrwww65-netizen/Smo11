@@ -339,8 +339,19 @@ export const runFullDiagnostics = async (
     const rawMsg = err.message || String(err);
     if (rawMsg.includes('Failed to fetch') || rawMsg.includes('NetworkError') || rawMsg.includes('fetch')) {
       return `Failed to fetch (CORS / Web Platform Blocked).
-Arabic: ⚠️ هذا الخطأ يعني أن متصفحك يمنع الاتصال بخوادم Appwrite بسبب قيود الحماية (CORS). لحل هذه المشكلة، يجب عليك تسجيل رابط موقعك الحالي (مثلاً http://localhost:5173 أو نطاق الاستضافة الخاص بك) كمنصة ويب (Web Platform) في لوحة تحكم مشروع Appwrite (إعدادات المشروع -> المنصات Platforms -> إضافة Web App).
-English: ⚠️ This indicates a CORS / Web Platform block. To resolve this, you must add your current domain (e.g., http://localhost:5173 or your production URL) as a Web Platform in your Appwrite Project Settings under the "Platforms" section.`;
+Arabic: ⚠️ هذا الخطأ يعني أن متصفحك يمنع الاتصال بخوادم Appwrite بسبب قيود الحماية (CORS). لحل هذه المشكلة، يجب عليك تسجيل رابط موقعك الحالي (مثلاً smo-a.netlify.app أو http://localhost:5173) كمنصة ويب (Web Platform) في لوحة تحكم مشروع Appwrite الخاص بك:
+1. اذهب إلى لوحة تحكم Appwrite Cloud.
+2. ادخل إلى مشروعك (ID: 6a5c48fb00236c305a1c).
+3. اختر الإعدادات (Settings) -> المنصات (Platforms).
+4. اضغط على إضافة منصة (Add Platform) -> ثم اختر تطبيق ويب (Web App).
+5. في خانة اسم الاستضافة (Hostname)، قم بإدخال "smo-a.netlify.app" ثم احفظ الإعدادات لتفعيل الاتصال فوراً.
+
+English: ⚠️ This indicates a CORS / Web Platform block. To resolve this, you must add your domain "smo-a.netlify.app" (and "localhost" if developing locally) as a Web Platform in your Appwrite Project Settings under the "Platforms" section:
+1. Go to your Appwrite Cloud Console.
+2. Select your Project (ID: 6a5c48fb00236c305a1c).
+3. Navigate to Settings -> Platforms.
+4. Click "Add Platform" -> select "Web App".
+5. Enter "smo-a.netlify.app" in the Hostname field and save.`;
     }
     if (rawMsg.includes('project_not_found') || rawMsg.includes('404')) {
       return `Project Not Found (404 Error).

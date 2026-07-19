@@ -9,12 +9,15 @@ import { Settings } from './components/Settings';
 
 import {
   Dna,
-  Award
+  Award,
+  Menu,
+  X
 } from 'lucide-react';
 
 const MainAppContent: React.FC = () => {
   const { language, t } = useApp();
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Render correct page based on chosen sidebar tab
   const renderActiveTab = () => {
@@ -34,6 +37,11 @@ const MainAppContent: React.FC = () => {
     }
   };
 
+  const selectTabOnMobile = (tabId: string) => {
+    setCurrentTab(tabId);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#070b15] text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300">
 
@@ -47,19 +55,49 @@ const MainAppContent: React.FC = () => {
       </div>
 
       {/* Main Layout Grid */}
-      <div className="flex flex-1 relative z-10">
+      <div className="flex flex-1 relative z-10 w-full overflow-x-hidden">
 
-        {/* Sidebar Panel */}
-        <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} />
+        {/* Sidebar Panel for Desktop (hidden on mobile) */}
+        <div className="hidden md:block">
+          <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} />
+        </div>
+
+        {/* Elegant Floating Royal Hamburger Menu Button for Mobile */}
+        <div className="md:hidden fixed top-4 right-4 z-50">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-3 rounded-2xl bg-white/80 dark:bg-[#111827]/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 text-emerald-500 shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-[1.05]"
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+
+        {/* Sliding Drawer Sidebar for Mobile */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-40 md:hidden flex justify-end">
+            {/* Backdrop Blur overlay */}
+            <div
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+
+            {/* Slide-out Sidebar container */}
+            <div className={`relative w-80 max-w-[85vw] h-full bg-white dark:bg-[#111827] shadow-2xl flex flex-col p-6 z-50 transition-all duration-300 transform translate-x-0 ${
+              language === 'ar' ? 'mr-auto left-0 animate-slide-in-right' : 'ml-auto right-0 animate-slide-in-left'
+            }`}>
+              <Sidebar currentTab={currentTab} setCurrentTab={selectTabOnMobile} />
+            </div>
+          </div>
+        )}
 
         {/* Dynamic content view */}
-        <main className="flex-1 p-6 md:p-10 overflow-y-auto max-h-screen">
+        <main className="flex-1 p-4 md:p-10 overflow-y-auto max-h-screen w-full">
 
           {/* Top Majestic Royal Brand Bar */}
-          <header className="flex items-center justify-between pb-8 mb-8 border-b border-slate-200/50 dark:border-slate-800/50">
+          <header className="flex flex-col md:flex-row md:items-center justify-between pb-6 mb-6 md:pb-8 md:mb-8 border-b border-slate-200/50 dark:border-slate-800/50 gap-4 mt-12 md:mt-0">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Dna className="h-5 w-5 text-emerald-500" />
+                <Dna className="h-5 w-5 text-emerald-500 animate-spin-slow" />
                 <span className="text-xs text-slate-400 font-semibold tracking-wider uppercase">
                   {t.bioWorkspace}
                 </span>
@@ -71,7 +109,7 @@ const MainAppContent: React.FC = () => {
 
             {/* Noble Crown Icon / Badge */}
             <div className="flex items-center gap-3">
-              <div className="flex flex-col text-right">
+              <div className="flex flex-col text-right md:text-right">
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
                   {language === 'ar' ? 'منصة العالمة سمو الأميرة' : 'Princess Scientist Platform'}
                 </span>
@@ -86,7 +124,7 @@ const MainAppContent: React.FC = () => {
           </header>
 
           {/* Active view renderer */}
-          <div className="relative">
+          <div className="relative w-full">
             {renderActiveTab()}
           </div>
 

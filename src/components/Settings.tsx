@@ -31,7 +31,8 @@ export const Settings: React.FC = () => {
     appwriteProjectId,
     appwriteDatabaseId,
     appwriteBucketId,
-    saveAllSettings
+    saveAllSettings,
+    selectedModel
   } = useApp();
 
   // Internal visual state for keys hiding/revealing
@@ -76,7 +77,8 @@ export const Settings: React.FC = () => {
     setDiagnosticLoading(true);
     setDiagnosticResult(null);
     try {
-      const result = await runFullDiagnostics(endpoint, projId, dbId, bucketId, gKey);
+      // Run with globally selected Gemini model
+      const result = await runFullDiagnostics(endpoint, projId, dbId, bucketId, gKey, selectedModel);
       setDiagnosticResult(result);
     } catch (err) {
       console.error("Diagnostic execution error:", err);
@@ -325,7 +327,7 @@ export const Settings: React.FC = () => {
         <div className="bg-white dark:bg-[#111827]/60 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-lg space-y-4 animate-fade-in">
           <h3 className="font-extrabold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
             <Activity className="h-5 w-5 text-emerald-500 animate-pulse" />
-            <span>{language === 'ar' ? 'تقرير فحص وتأكيد الاتصال الفوري' : 'Live Connection Diagnostics Status'}</span>
+            <span>{language === 'ar' ? `تقرير فحص الاتصال الفوري (النموذج: ${selectedModel})` : `Live Connection Diagnostics Status (Model: ${selectedModel})`}</span>
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

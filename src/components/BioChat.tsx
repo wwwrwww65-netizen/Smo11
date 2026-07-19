@@ -8,7 +8,8 @@ import {
   Trash2,
   Loader2,
   Paperclip,
-  FileText
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import {
   performBioAiAnalysis,
@@ -16,11 +17,12 @@ import {
   saveChatMessage,
   clearAllChatHistory,
   uploadFileToAppwrite,
+  listGeminiModels,
   type ChatMessage
 } from '../services/bioService';
 
 export const BioChat: React.FC = () => {
-  const { t, language, geminiKey } = useApp();
+  const { t, language, geminiKey, selectedModel, setSelectedModel } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
@@ -28,10 +30,13 @@ export const BioChat: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
 
+  // Dynamic models list
+  const [models, setModels] = useState<string[]>([selectedModel]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load chats from Appwrite Database
+  // Load chat history from Appwrite Database
   const fetchChats = useCallback(async () => {
     setIsAiAnalyzing(true);
     try {
@@ -81,9 +86,24 @@ export const BioChat: React.FC = () => {
     }
   }, [language]);
 
+  // Fetch Gemini Models list dynamically
+  const fetchModels = useCallback(async () => {
+    try {
+      const availableModels = await listGeminiModels(geminiKey);
+      setModels(availableModels);
+      // If our current selected model is not in the list of available models, update it to the first available
+      if (availableModels.length > 0 && !availableModels.includes(selectedModel)) {
+        setSelectedModel(availableModels[0]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Gemini models list", err);
+    }
+  }, [geminiKey, selectedModel, setSelectedModel]);
+
   useEffect(() => {
     fetchChats();
-  }, [fetchChats]);
+    fetchModels();
+  }, [fetchChats, fetchModels]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -153,8 +173,8 @@ export const BioChat: React.FC = () => {
     setMessages((prev) => [...prev, aiMsg]);
 
     try {
-      // Execute Advanced Biological AI Analysis
-      const responseText = await performBioAiAnalysis(finalPrompt, null, geminiKey);
+      // Execute Advanced Biological AI Analysis using selected model
+      const responseText = await performBioAiAnalysis(finalPrompt, null, geminiKey, selectedModel);
       
       // Save Assistant message to Appwrite Database
       try {
@@ -169,8 +189,8 @@ export const BioChat: React.FC = () => {
     } catch (err: any) {
       console.error("AI service error:", err);
       const errMsg = language === 'ar' 
-        ? `عذراً، حدث خطأ أثناء تشغيل التحليل. الرجاء التحقق من كود Gemini في الإعدادات وتأكيد صلاحية الاتصال.\nتفاصيل الخطأ العلمي: ${err.message || err}`
-        : `Error running analysis. Please verify your Gemini Key in Settings and confirm api quota.\nDetails: ${err.message || err}`;
+        ? `عذراً، حدث خطأ أثناء تشغيل التحليل باستخدام النموذج ${selectedModel}. الرجاء التحقق من كود Gemini في الإعدادات وتأكيد صلاحية الاتصال.\nتفاصيل الخطأ العلمي: ${err.message || err}`
+        : `Error running analysis with model ${selectedModel}. Please verify your Gemini Key in Settings and confirm api quota.\nDetails: ${err.message || err}`;
       setMessages((prev) =>
         prev.map((m) => m.id === aiMessageId ? { ...m, text: errMsg, isAiAnalyzing: false } : m)
       );
@@ -216,7 +236,7 @@ export const BioChat: React.FC = () => {
     <div className="flex flex-col h-[calc(100vh-13rem)] max-w-5xl mx-auto bg-white dark:bg-[#111827]/60 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-xl overflow-hidden animate-fade-in relative z-10">
 
       {/* Header of Bio-Chat */}
-      <div className="px-6 py-4 border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+      <div className="px-6 py-4 border-b border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
             <Sparkles className="h-5 w-5" />
@@ -232,13 +252,33 @@ export const BioChat: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={clearChat}
-          className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
-          title="Clear Session"
-        >
-          <Trash2 className="h-4.5 w-4.5" />
-        </button>
+        {/* Model Dropdown Selection & Actions */}
+        <div className="flex items-center gap-3 ml-auto rtl:ml-0 rtl:mr-auto">
+          {/* Model Selector Dropdown */}
+          <div className="relative flex items-center bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5">
+            <Cpu className="h-3.5 w-3.5 text-emerald-500 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="bg-transparent text-[11px] font-bold text-slate-700 dark:text-slate-200 focus:outline-none appearance-none pr-6 rtl:pr-0 rtl:pl-6 cursor-pointer font-mono"
+            >
+              {models.map((model) => (
+                <option key={model} value={model} className="bg-white dark:bg-[#111827] text-slate-800 dark:text-slate-100 font-mono">
+                  {model}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="h-3 w-3 text-slate-400 absolute right-2.5 rtl:right-auto rtl:left-2.5 pointer-events-none" />
+          </div>
+
+          <button
+            onClick={clearChat}
+            className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all"
+            title="Clear Session"
+          >
+            <Trash2 className="h-4.5 w-4.5" />
+          </button>
+        </div>
       </div>
 
       {/* Messages Feed area */}

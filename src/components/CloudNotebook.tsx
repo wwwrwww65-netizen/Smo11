@@ -23,7 +23,7 @@ import {
 } from '../services/bioService';
 
 export const CloudNotebook: React.FC = () => {
-  const { t, language, geminiKey } = useApp();
+  const { t, language, geminiKey, selectedModel } = useApp();
 
   // Folders & Notes States
   const [projects, setProjects] = useState<ProjectFolder[]>([]);
@@ -201,10 +201,11 @@ export const CloudNotebook: React.FC = () => {
     setAiFeedback('');
     try {
       const prompt = language === 'ar'
-        ? `قم بتحليل ملاحظات التجربة التالية وتقديم مقترحات لتطوير التجربة، تحديد الأخطاء المنهجية، واقتراح الخطوات العلمية القادمة:\n\n${noteContent}`
+        ? `قم بتحليل ملاحظات التجربة التالية وتقديم مقترحات لتطوير التجربة، تحديد الأخطاء المنهجية، واقترح الخطوات العلمية القادمة:\n\n${noteContent}`
         : `Analyze the following wet-lab experiment details. Provide peer-reviewed feedback, look for potential experimental methodology flaws, and propose concrete next step chemical/biological tests:\n\n${noteContent}`;
 
-      const advice = await performBioAiAnalysis(prompt, null, geminiKey);
+      // Feed selected model to evaluate
+      const advice = await performBioAiAnalysis(prompt, null, geminiKey, selectedModel);
       setAiFeedback(advice);
     } catch {
       setAiFeedback("AI failed to compile suggestions. Please confirm Gemini configuration.");
@@ -391,7 +392,7 @@ export const CloudNotebook: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <Cpu className="h-4.5 w-4.5 text-emerald-500" />
                     <span className="font-extrabold text-xs text-emerald-600 dark:text-emerald-400">
-                      {language === 'ar' ? 'ملاحظات التقويم الذكي من المساعد البيولوجي' : 'AI Laboratory Diagnostic Insight'}
+                      {language === 'ar' ? `ملاحظات التقويم من النموذج النشط (${selectedModel})` : `Active AI Insight (${selectedModel})`}
                     </span>
                   </div>
                   <div className="prose prose-sm dark:prose-invert max-w-none text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">

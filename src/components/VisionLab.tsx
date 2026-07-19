@@ -16,7 +16,7 @@ import { performBioAiAnalysis, uploadFileToAppwrite } from '../services/bioServi
 const SAMPLE_MICRO_IMAGE = "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&q=80&w=600";
 
 export const VisionLab: React.FC = () => {
-  const { t, language, geminiKey } = useApp();
+  const { t, language, geminiKey, selectedModel } = useApp();
   const [imageSrc, setImageSrc] = useState<string>(SAMPLE_MICRO_IMAGE);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -150,8 +150,8 @@ Active analysis of the cell structures yields high fidelity markers:
         ? "قم بتحليل هذه الصورة المجهرية بدقة علمية كاملة ووصف شكل وتفاصيل الخلايا وتركيبها."
         : "Analyze this microscopy image with full biological detail. Report the shape, stains, structure, cell boundary integrity and any visible cell division anomalies.";
 
-      // Feed either local file or fetch URL
-      const response = await performBioAiAnalysis(prompt, imageFile, geminiKey);
+      // Feed either local file or fetch URL using the globally selected model
+      const response = await performBioAiAnalysis(prompt, imageFile, geminiKey, selectedModel);
       setAiAnalysisResult(response);
     } catch (err: any) {
       console.error("Vision Analysis error:", err);
@@ -319,7 +319,7 @@ Active analysis of the cell structures yields high fidelity markers:
                     {t.visionAnalysis}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    {language === 'ar' ? 'معالجة سحابية وتحليل فوري للخلايا' : 'Real-time structural cellular mapping'}
+                    {language === 'ar' ? `النموذج النشط: ${selectedModel}` : `Active Model: ${selectedModel}`}
                   </p>
                 </div>
               </div>

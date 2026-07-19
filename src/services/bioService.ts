@@ -1,14 +1,14 @@
 import { Client, Databases, Storage, Account, ID, Query } from 'appwrite';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Hardcoded default Appwrite configurations for stability & production
-export const DEFAULT_APPWRITE_ENDPOINT = 'https://cloud.appwrite.io/v1';
-export const DEFAULT_APPWRITE_PROJECT_ID = '6a5c48fb00236c305a1c';
-export const DEFAULT_APPWRITE_DATABASE_ID = '6a5c43ce003718f2ed71';
-export const DEFAULT_APPWRITE_STORAGE_BUCKET_ID = '6a5c4e1c001a2be6ae0d';
+// Default Appwrite configurations reading from environment variables VITE_... with hardcoded fallback values for production
+export const DEFAULT_APPWRITE_ENDPOINT = import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1';
+export const DEFAULT_APPWRITE_PROJECT_ID = import.meta.env.VITE_APPWRITE_PROJECT_ID || '6a5c48fb00236c305a1c';
+export const DEFAULT_APPWRITE_DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID || '6a5c43ce003718f2ed71';
+export const DEFAULT_APPWRITE_STORAGE_BUCKET_ID = import.meta.env.VITE_APPWRITE_STORAGE_BUCKET_ID || '6a5c4e1c001a2be6ae0d';
 
-// Default Gemini API key provided by the user
-export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6Jt2WHp-x_exlAVz7I_CcvLiad2JHZ6ODgX152sXpz-Pw';
+// Default Gemini API key provided with fallback to standard environment variable VITE_GEMINI_KEY
+export const DEFAULT_GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY || 'AQ.Ab8RN6Jt2WHp-x_exlAVz7I_CcvLiad2JHZ6ODgX152sXpz-Pw';
 
 // Helper getters to retrieve dynamic configurations from LocalStorage or fallback to defaults
 export const getAppwriteEndpoint = (): string => {
@@ -250,15 +250,50 @@ export const uploadFileToAppwrite = async (file: File): Promise<{ fileId: string
 // --------------------------------------------------
 // AI BIO & VISION ANALYSIS ASSISTANT
 // --------------------------------------------------
+
+// Dynamically list available Gemini models using official Google REST endpoint or fallback to known good versions
+export const listGeminiModels = async (apiKey: string): Promise<string[]> => {
+  const keyToUse = (apiKey && apiKey.trim() !== '') ? apiKey.trim() : getGeminiApiKey();
+  const defaultModels = [
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-2.5-pro'
+  ];
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${keyToUse}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    if (data && Array.isArray(data.models)) {
+      // Filter models that support content generation and simplify model ID names
+      const filtered = data.models
+        .filter((m: any) => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+        .map((m: any) => m.name.replace('models/', ''));
+      if (filtered.length > 0) {
+        return filtered;
+      }
+    }
+    return defaultModels;
+  } catch (err) {
+    console.warn("Failed to dynamically fetch Gemini models, using fallbacks", err);
+    return defaultModels;
+  }
+};
+
 export const performBioAiAnalysis = async (
   prompt: string,
   imageFile: File | null,
-  apiKey: string
+  apiKey: string,
+  modelName?: string
 ): Promise<string> => {
   const keyToUse = (apiKey && apiKey.trim() !== '') ? apiKey.trim() : getGeminiApiKey();
+  const modelToUse = modelName || 'gemini-2.5-flash';
   try {
     const ai = new GoogleGenerativeAI(keyToUse);
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: modelToUse });
 
     if (imageFile) {
       const fileToGenerativePart = async (file: File) => {
@@ -296,7 +331,7 @@ export const performBioAiAnalysis = async (
       return result.response.text();
     }
   } catch (err) {
-    console.error("Error executing Gemini analysis:", err);
+    console.error(`Error executing Gemini analysis with model ${modelToUse}:`, err);
     throw err;
   }
 };
@@ -316,7 +351,8 @@ export const runFullDiagnostics = async (
   project: string,
   database: string,
   bucket: string,
-  geminiKey: string
+  geminiKey: string,
+  geminiModel?: string
 ): Promise<DiagnosticResult> => {
   // Setup temporary test client
   const testClient = new Client()
@@ -339,14 +375,14 @@ export const runFullDiagnostics = async (
     const rawMsg = err.message || String(err);
     if (rawMsg.includes('Failed to fetch') || rawMsg.includes('NetworkError') || rawMsg.includes('fetch')) {
       return `Failed to fetch (CORS / Web Platform Blocked).
-Arabic: ⚠️ هذا الخطأ يعني أن متصفحك يمنع الاتصال بخوادم Appwrite بسبب قيود الحماية (CORS). لحل هذه المشكلة، يجب عليك تسجيل رابط موقعك الحالي (مثلاً smo-a.netlify.app أو http://localhost:5173) كمنصة ويب (Web Platform) في لوحة تحكم مشروع Appwrite الخاص بك:
+Arabic: ⚠️ هذا الخطأ يعني أن متصفحك يمنع الاتصال بخوادم Appwrite بسبب قيود الحماية (CORS). لحل هذه المشكلة، يجب عليك تسجيل رابط موقعك الحالي (مثلاً smo-a.netlify.app) كمنصة ويب (Web Platform) في لوحة تحكم مشروع Appwrite الخاص بك:
 1. اذهب إلى لوحة تحكم Appwrite Cloud.
 2. ادخل إلى مشروعك (ID: 6a5c48fb00236c305a1c).
 3. اختر الإعدادات (Settings) -> المنصات (Platforms).
 4. اضغط على إضافة منصة (Add Platform) -> ثم اختر تطبيق ويب (Web App).
 5. في خانة اسم الاستضافة (Hostname)، قم بإدخال "smo-a.netlify.app" ثم احفظ الإعدادات لتفعيل الاتصال فوراً.
 
-English: ⚠️ This indicates a CORS / Web Platform block. To resolve this, you must add your domain "smo-a.netlify.app" (and "localhost" if developing locally) as a Web Platform in your Appwrite Project Settings under the "Platforms" section:
+English: ⚠️ This indicates a CORS / Web Platform block. To resolve this, you must add your domain "smo-a.netlify.app" as a Web Platform in your Appwrite Project Settings under the "Platforms" section:
 1. Go to your Appwrite Cloud Console.
 2. Select your Project (ID: 6a5c48fb00236c305a1c).
 3. Navigate to Settings -> Platforms.
@@ -410,10 +446,11 @@ English: ⚠️ The Gemini API key provided is invalid or has expired. Standard 
   try {
     const aiKey = geminiKey || DEFAULT_GEMINI_KEY;
     const ai = new GoogleGenerativeAI(aiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const modelToUse = geminiModel || 'gemini-2.5-flash';
+    const model = ai.getGenerativeModel({ model: modelToUse });
     const response = await model.generateContent("Ping");
     if (response.response.text()) {
-      result.gemini = { success: true, message: 'Gemini API verified successfully.' };
+      result.gemini = { success: true, message: `Gemini API verified successfully using model ${modelToUse}.` };
     } else {
       result.gemini = { success: false, message: 'Gemini API responded with an empty body.' };
     }

@@ -8,4 +8,4 @@ export const DEFAULT_APPWRITE_DATABASE_ID = '6a5c43ce003718f2ed71';
 export const DEFAULT_APPWRITE_STORAGE_BUCKET_ID = '6a5c4e1c001a2be6ae0d';
 
 // Default Gemini API key used directly on client-side requests
-export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6Jt2WHp-x_exlAVz7I_CcvLiad2JHZ6ODgX152sXpz-Pw';
+export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6IiduFA80UTJ8fCjdR0KxHCgAZQ-Gi7W_H0C56GBD7RXw';

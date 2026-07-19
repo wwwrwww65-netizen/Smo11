@@ -1,67 +1,35 @@
-import { Client, Databases, Storage, Account } from 'appwrite';
+import { Client, Databases, Storage, Account, ID, Query } from 'appwrite';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Appwrite Client lazily or dynamically
-export const getAppwriteClient = (endpoint: string, projectId: string) => {
-  if (!endpoint || !projectId) return null;
+// Hardcoded Appwrite configurations for stability & production
+export const APPWRITE_ENDPOINT = 'https://cloud.appwrite.io/v1';
+export const APPWRITE_PROJECT_ID = '6a5c48fb00236c305a1c';
+export const APPWRITE_DATABASE_ID = '6a5c43ce003718f2ed71';
+export const APPWRITE_STORAGE_BUCKET_ID = '6a5c4e1c001a2be6ae0d';
+
+// Default Gemini API key provided by the user
+export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6Jt2WHp-x_exlAVz7I_CcvLiad2JHZ6ODgX152sXpz-Pw';
+
+// Initialize Appwrite Client singletons
+const client = new Client()
+  .setEndpoint(APPWRITE_ENDPOINT)
+  .setProject(APPWRITE_PROJECT_ID);
+
+export const appwriteDatabases = new Databases(client);
+export const appwriteStorage = new Storage(client);
+export const appwriteAccount = new Account(client);
+
+// Ensure session exists (Anonymous session support)
+export const initAppwriteSession = async (): Promise<void> => {
   try {
-    const client = new Client();
-    client.setEndpoint(endpoint).setProject(projectId);
-    return {
-      client,
-      databases: new Databases(client),
-      storage: new Storage(client),
-      account: new Account(client),
-    };
-  } catch (err) {
-    console.error("Failed to initialize Appwrite client", err);
-    return null;
+    await appwriteAccount.get();
+  } catch {
+    try {
+      await appwriteAccount.createAnonymousSession();
+    } catch (err) {
+      console.error("Failed to establish Appwrite anonymous session", err);
+    }
   }
-};
-
-// Bio-Intelligence Analysis Assistant simulation responses
-const BIOLOGICAL_KNOWLEDGE_BASE = {
-  mitosis: `### 🔬 Mitotic Cell Division Analysis
-
-Based on your inquiry, **Mitosis** is a fundamental process where a single cell divides into two identical daughter cells. Here is a scientific overview:
-
-1. **Prophase**: Chromatin condenses into visible chromosomes. The nucleolus disappears, and the mitotic spindle begins to form.
-2. **Metaphase**: Chromosomes line up perfectly along the metaphase plate. Spindle fibers attach to the kinetochores.
-3. **Anaphase**: Sister chromatids are pulled apart by the spindle fibers toward opposite poles of the cell.
-4. **Telophase**: Nuclear envelopes reform around the two new nuclei, and chromosomes begin to decondense.
-
-**Clinical/Research Significance:**
-Understanding mitotic indices is crucial in oncological research to assess tumor proliferation rates.`,
-
-  gram: `### 🧫 Gram-Negative Bacteria Microscopic Identification
-
-Identifying Gram-negative bacteria requires a structured staining procedure and high-zoom brightfield microscopy (1000x with oil immersion):
-
-* **Color Outcome**: Gram-negative bacteria appear **pink/red** under the microscope due to their thin peptidoglycan layer and outer membrane which fails to retain the crystal violet-iodine complex, absorbing the **Safranin counterstain**.
-* **Cellular Morphology**: Common structures include:
-  - *Bacilli* (rod-shaped, e.g., *Escherichia coli*, *Pseudomonas aeruginosa*)
-  - *Cocci* (spherical, e.g., *Neisseria gonorrhoeae*)
-* **Important Characteristics**: They possess a lipopolysaccharide (LPS) outer membrane which acts as an endotoxin, making them clinically challenging due to high antibiotic resistance.`,
-
-  summarize: `### 📄 Scientific Document Summary & Insights
-**Document Ref:** *Mitochondrial DNA (mtDNA) & Cell Metabolism Regulation*
-
-**Key Discoveries & Findings:**
-1. **Oxidative Phosphorylation**: The paper outlines how mitochondrial respiratory chain complexes are modulated during stress, leading to a 34% increase in reactive oxygen species (ROS) production.
-2. **Genetic Mutations**: Points to a correlation between MT-ND1 gene polymorphisms and cellular senescence in vascular tissue.
-3. **AI Projections**: Applying machine learning algorithms to mitochondrial morphology yields a 91.4% accuracy in predicting metabolic shifts.
-
-**Recommendation for Future Wet-Lab Steps:**
-We recommend performing a Western blot assay targeting Complex IV subunits to confirm translational regulation.`,
-
-  generic: `### 🧬 Biological Analysis Report
-Thank you for your inquiry. Here is the AI-generated biological assessment based on advanced cellular research patterns:
-
-* **Inquiry/Topic:** Bio-Systems Modeling & Cell Viability
-* **Scientific Insights:** Recent publications suggest that microfluidic organ-on-a-chip models provide highly realistic tissue microenvironments, allowing for real-time tracking of drug absorption rates.
-* **Suggested Next Experiment:** Consider running a fluorescence-based live/dead cell assay (Calcein AM/Ethidium Homodimer-1) to quantify cell survival rate over 48 hours.
-
-*Developed under the guidance of the Her Highness Scientist workspace.*`
 };
 
 export interface ChatMessage {
@@ -74,77 +42,6 @@ export interface ChatMessage {
   isAiAnalyzing?: boolean;
 }
 
-// Main service to perform biological computations and AI analysis
-export const performBioAiAnalysis = async (
-  prompt: string,
-  imageFile: File | null,
-  apiKey: string
-): Promise<string> => {
-  // If API key is provided, attempt real Gemini call
-  if (apiKey && apiKey.trim() !== "") {
-    try {
-      const ai = new GoogleGenerativeAI(apiKey);
-      const model = ai.getGenerativeModel({ model: imageFile ? 'gemini-1.5-flash' : 'gemini-1.5-flash' });
-
-      let response;
-      if (imageFile) {
-        // Convert file to Generative Part
-        const fileToGenerativePart = async (file: File) => {
-          return new Promise<{ inlineData: { data: string; mimeType: string } }>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const base64Data = (reader.result as string).split(',')[1];
-              resolve({
-                inlineData: {
-                  data: base64Data,
-                  mimeType: file.type
-                }
-              });
-            };
-            reader.readAsDataURL(file);
-          });
-        };
-
-        const imagePart = await fileToGenerativePart(imageFile);
-        const result = await model.generateContent([
-          `You are the highly advanced, world-class biological assistant "Her Highness Scientist Platform (Bio-Workspace AI)".
-           Analyze this microscope/biological image based on this prompt: "${prompt}".
-           Provide extremely detailed, professional, structured and peer-reviewed biological feedback. Use markdown.`,
-          imagePart
-        ]);
-        response = result.response.text();
-      } else {
-        const result = await model.generateContent(
-          `You are the highly advanced, world-class biological assistant "Her Highness Scientist Platform (Bio-Workspace AI)".
-           Analyze the following inquiry as a world-class biologist/bioinformatician: "${prompt}".
-           Provide an extremely detailed, professional, structured and peer-reviewed biological feedback. Use markdown.`
-        );
-        response = result.response.text();
-      }
-      return response;
-    } catch (err) {
-      console.error("Error calling Gemini API, falling back to Intelligent Mock Logic:", err);
-    }
-  }
-
-  // High-fidelity Bio-Mock Logic (Demo Mode / Fallback)
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const lower = prompt.toLowerCase();
-      if (lower.includes('mitosis') || lower.includes('انقسام') || lower.includes('ميتوزي')) {
-        resolve(BIOLOGICAL_KNOWLEDGE_BASE.mitosis);
-      } else if (lower.includes('gram') || lower.includes('غرام') || lower.includes('بكتيريا')) {
-        resolve(BIOLOGICAL_KNOWLEDGE_BASE.gram);
-      } else if (lower.includes('summarize') || lower.includes('ملخص') || lower.includes('بحث') || lower.includes('لخص')) {
-        resolve(BIOLOGICAL_KNOWLEDGE_BASE.summarize);
-      } else {
-        resolve(BIOLOGICAL_KNOWLEDGE_BASE.generic);
-      }
-    }, 1500); // Simulate network latency and premium computation
-  });
-};
-
-// Simulated Database / Appwrite storage local state
 export interface ProjectFolder {
   id: string;
   nameAr: string;
@@ -155,75 +52,221 @@ export interface ProjectFolder {
 
 export interface ResearchNote {
   id: string;
-  projectId: string;
+  projectId: string; // mapped to 'category' in Appwrite
   title: string;
   content: string;
   updatedAt: string;
 }
 
-export const initialProjects: ProjectFolder[] = [
-  { id: 'proj-1', nameAr: 'انقسام الخلايا الميتوزي', nameEn: 'Mitotic Cell Division Studies', created: '2025-02-15', notesCount: 3 },
-  { id: 'proj-2', nameAr: 'تأثير المضادات الحيوية', nameEn: 'Antibiotic Sensitivity Profiling', created: '2025-02-20', notesCount: 2 },
-  { id: 'proj-3', nameAr: 'تنسيق الميتوكوندريا', nameEn: 'Mitochondrial Bioenergetics', created: '2025-02-28', notesCount: 1 }
-];
+// --------------------------------------------------
+// APPWRITE DB & STORAGE INTERACTIONS
+// --------------------------------------------------
 
-export const initialNotes: ResearchNote[] = [
-  {
-    id: 'note-1',
-    projectId: 'proj-1',
-    title: 'Observation of Prophase in Allium cepa',
-    content: `### 🧅 Experiment Log: Onion Root Tip Mitosis
-**Date:** February 15, 2025
-**Objective:** Observe chromosomes in onion root tip cell division.
-
-#### 🧫 Protocol:
-1. Fix onion roots in Carnoy's fluid for 24 hours.
-2. Hydrolyze in 1N HCl at 60°C for 5 minutes.
-3. Stain with Acetocarmine for 10 minutes.
-4. Squash carefully on a clean slide.
-
-#### 📊 Quantitative Observations:
-| Phase | Count | Percentage (%) |
-|---|---|---|
-| Interphase | 142 | 71.0% |
-| Prophase | 24 | 12.0% |
-| Metaphase | 18 | 9.0% |
-| Anaphase | 11 | 5.5% |
-| Telophase | 5 | 2.5% |
-
-#### 🔬 Discussion:
-The mitotic index is calculated to be **29%**, indicating high proliferation within the meristematic zone. Cells display beautiful chromosome condensation in early prophase, and the nuclear envelope is noticeably absent in late stages.`,
-    updatedAt: '2025-02-15'
-  },
-  {
-    id: 'note-2',
-    projectId: 'proj-1',
-    title: 'AI Assisted Mitotic Index Analysis',
-    content: `### 🤖 Automated Cell Analysis & Validation
-**Date:** February 18, 2025
-*Analyzed via Vision Lab Deep Learning Models*
-
-* **Total Counted Cells:** 200
-* **Identified Dividing Cells:** 58
-* **Anomalous Structures Detected:** 2 chromosomal bridges in anaphase, suggesting possible chemical mutation.
-
-**Conclusion:** The sample exhibits accelerated karyokinesis, aligned with controls treated with light cytokine boosters.`,
-    updatedAt: '2025-02-18'
-  },
-  {
-    id: 'note-3',
-    projectId: 'proj-2',
-    title: 'E. Coli Penicillin Resistance Matrix',
-    content: `### 🧫 Zone of Inhibition Study
-**Date:** February 22, 2025
-**Target Strain:** *Escherichia coli* (ATCC 25922)
-
-#### 📝 Results:
-* **Penicillin (10µg):** 4mm (Resistant)
-* **Ampicillin (10µg):** 16mm (Intermediate)
-* **Ciprofloxacin (5µg):** 28mm (Highly Sensitive)
-
-**Discussion:** Gram-negative membrane acts as a powerful barrier against classic beta-lactams. Use of outer-membrane permeabilizers is highly recommended to restore penicillin efficiency.`,
-    updatedAt: '2025-02-22'
+// Chat History integration
+export const getChatHistory = async (): Promise<ChatMessage[]> => {
+  await initAppwriteSession();
+  try {
+    const response = await appwriteDatabases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      'chat_history',
+      [Query.orderAsc('$createdAt'), Query.limit(100)]
+    );
+    return response.documents.map((doc: any) => ({
+      id: doc.$id,
+      sender: doc.sender === 'assistant' ? 'assistant' : 'user',
+      text: doc.message || '',
+      timestamp: new Date(doc.$createdAt)
+    }));
+  } catch (err) {
+    console.error("Failed to load chat history from Appwrite", err);
+    return [];
   }
-];
+};
+
+export const saveChatMessage = async (sender: 'user' | 'assistant', message: string): Promise<void> => {
+  await initAppwriteSession();
+  try {
+    await appwriteDatabases.createDocument(
+      APPWRITE_DATABASE_ID,
+      'chat_history',
+      ID.unique(),
+      {
+        sender,
+        message
+      }
+    );
+  } catch (err) {
+    console.error("Failed to write message to Appwrite", err);
+  }
+};
+
+export const clearAllChatHistory = async (): Promise<void> => {
+  await initAppwriteSession();
+  try {
+    const response = await appwriteDatabases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      'chat_history',
+      [Query.limit(100)]
+    );
+    for (const doc of response.documents) {
+      await appwriteDatabases.deleteDocument(APPWRITE_DATABASE_ID, 'chat_history', doc.$id);
+    }
+  } catch (err) {
+    console.error("Failed to clear chat history", err);
+  }
+};
+
+// Lab Notes integration
+export const getLabNotes = async (): Promise<ResearchNote[]> => {
+  await initAppwriteSession();
+  try {
+    const response = await appwriteDatabases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      'lab_notes',
+      [Query.limit(100)]
+    );
+    return response.documents.map((doc: any) => ({
+      id: doc.$id,
+      projectId: doc.category || 'General',
+      title: doc.title || '',
+      content: doc.content || '',
+      updatedAt: new Date(doc.$updatedAt || doc.$createdAt).toISOString().split('T')[0]
+    }));
+  } catch (err) {
+    console.error("Failed to retrieve lab notes", err);
+    return [];
+  }
+};
+
+export const createLabNote = async (title: string, content: string, category: string): Promise<ResearchNote> => {
+  await initAppwriteSession();
+  try {
+    const response = await appwriteDatabases.createDocument(
+      APPWRITE_DATABASE_ID,
+      'lab_notes',
+      ID.unique(),
+      {
+        title,
+        content,
+        category
+      }
+    );
+    return {
+      id: response.$id,
+      projectId: response.category,
+      title: response.title,
+      content: response.content,
+      updatedAt: new Date(response.$updatedAt).toISOString().split('T')[0]
+    };
+  } catch (err) {
+    console.error("Failed to construct lab note", err);
+    throw err;
+  }
+};
+
+export const updateLabNote = async (noteId: string, title: string, content: string, category: string): Promise<void> => {
+  await initAppwriteSession();
+  try {
+    await appwriteDatabases.updateDocument(
+      APPWRITE_DATABASE_ID,
+      'lab_notes',
+      noteId,
+      {
+        title,
+        content,
+        category
+      }
+    );
+  } catch (err) {
+    console.error("Failed to update lab note in database", err);
+    throw err;
+  }
+};
+
+export const deleteLabNote = async (noteId: string): Promise<void> => {
+  await initAppwriteSession();
+  try {
+    await appwriteDatabases.deleteDocument(
+      APPWRITE_DATABASE_ID,
+      'lab_notes',
+      noteId
+    );
+  } catch (err) {
+    console.error("Failed to remove lab note", err);
+    throw err;
+  }
+};
+
+// Storage integration
+export const uploadFileToAppwrite = async (file: File): Promise<{ fileId: string; fileUrl: string }> => {
+  await initAppwriteSession();
+  try {
+    const response = await appwriteStorage.createFile(
+      APPWRITE_STORAGE_BUCKET_ID,
+      ID.unique(),
+      file
+    );
+    const fileUrl = appwriteStorage.getFileView(APPWRITE_STORAGE_BUCKET_ID, response.$id).toString();
+    return {
+      fileId: response.$id,
+      fileUrl
+    };
+  } catch (err) {
+    console.error("Appwrite cloud file storage upload failure", err);
+    throw err;
+  }
+};
+
+// --------------------------------------------------
+// AI BIO & VISION ANALYSIS ASSISTANT
+// --------------------------------------------------
+export const performBioAiAnalysis = async (
+  prompt: string,
+  imageFile: File | null,
+  apiKey: string
+): Promise<string> => {
+  const keyToUse = (apiKey && apiKey.trim() !== '') ? apiKey.trim() : DEFAULT_GEMINI_KEY;
+  try {
+    const ai = new GoogleGenerativeAI(keyToUse);
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    if (imageFile) {
+      const fileToGenerativePart = async (file: File) => {
+        return new Promise<{ inlineData: { data: string; mimeType: string } }>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64Data = (reader.result as string).split(',')[1];
+            resolve({
+              inlineData: {
+                data: base64Data,
+                mimeType: file.type
+              }
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      };
+
+      const imagePart = await fileToGenerativePart(imageFile);
+      const result = await model.generateContent([
+        `You are the highly advanced, world-class biological assistant "Princess Scientist Platform (العالمة سمو الأميرة)".
+         Analyze this microscope/biological image based on this prompt: "${prompt}".
+         Respond in Arabic or English based on the language of the prompt or standard scientific language.
+         Provide extremely detailed, professional, structured, and peer-reviewed biological feedback. Use markdown.`,
+        imagePart
+      ]);
+      return result.response.text();
+    } else {
+      const result = await model.generateContent(
+        `You are the highly advanced, world-class biological assistant "Princess Scientist Platform (العالمة سمو الأميرة)".
+         Analyze the following inquiry as a world-class biologist/bioinformatician: "${prompt}".
+         Respond in Arabic or English based on the language of the prompt or standard scientific language.
+         Provide an extremely detailed, professional, structured, and peer-reviewed biological feedback. Use markdown.`
+      );
+      return result.response.text();
+    }
+  } catch (err) {
+    console.error("Error executing Gemini analysis:", err);
+    throw err;
+  }
+};

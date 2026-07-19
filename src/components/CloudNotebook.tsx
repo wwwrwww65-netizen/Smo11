@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../AppContext';
 import {
   Folder,
@@ -15,8 +15,10 @@ import {
 import {
   type ProjectFolder,
   type ResearchNote,
-  initialProjects,
-  initialNotes,
+  getLabNotes,
+  createLabNote,
+  updateLabNote,
+  deleteLabNote,
   performBioAiAnalysis
 } from '../services/bioService';
 
@@ -24,92 +26,177 @@ export const CloudNotebook: React.FC = () => {
   const { t, language, geminiKey } = useApp();
 
   // Folders & Notes States
-  const [projects, setProjects] = useState<ProjectFolder[]>(initialProjects);
-  const [notes, setNotes] = useState<ResearchNote[]>(initialNotes);
-  const [activeProjectId, setActiveProjectId] = useState<string>('proj-1');
-  const [activeNoteId, setActiveNoteId] = useState<string>('note-1');
+  const [projects, setProjects] = useState<ProjectFolder[]>([]);
+  const [notes, setNotes] = useState<ResearchNote[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string>('General');
+  const [activeNoteId, setActiveNoteId] = useState<string>('');
 
   // Input states for writing notes
   const [noteTitle, setNoteTitle] = useState<string>('');
   const [noteContent, setNoteContent] = useState<string>('');
 
+  // Loading indicator
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   // AI advice/feedback status
   const [aiFeedback, setAiFeedback] = useState<string>('');
   const [isAiEvaluating, setIsAiEvaluating] = useState<boolean>(false);
 
-  // Load selected note content
+  // Load all notes on mount
+  const loadNotesFromAppwrite = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const records = await getLabNotes();
+      setNotes(records);
+
+      // Extract unique categories as directories/projects
+      const categories = Array.from(new Set(records.map(r => r.projectId)));
+      const derivedProjects: ProjectFolder[] = categories.map((cat) => ({
+        id: cat,
+        nameAr: cat,
+        nameEn: cat,
+        created: new Date().toISOString().split('T')[0],
+        notesCount: records.filter(r => r.projectId === cat).length
+      }));
+
+      // Ensure at least "General" or "عام" exists
+      if (!derivedProjects.some(p => p.id === 'General')) {
+        derivedProjects.unshift({
+          id: 'General',
+          nameAr: 'ملاحظات عامة',
+          nameEn: 'General Notes',
+          created: new Date().toISOString().split('T')[0],
+          notesCount: 0
+        });
+      }
+
+      setProjects(derivedProjects);
+
+      // Set active notes
+      const matched = records.filter(r => r.projectId === activeProjectId);
+      if (matched.length > 0) {
+        setActiveNoteId(matched[0].id);
+      } else {
+        setActiveNoteId('');
+      }
+    } catch (err) {
+      console.error("Failed to fetch notes:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    loadNotesFromAppwrite();
+  }, [loadNotesFromAppwrite]);
+
   const activeNote = notes.find(n => n.id === activeNoteId);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeNote) {
       setNoteTitle(activeNote.title);
       setNoteContent(activeNote.content);
       setAiFeedback(''); // Reset advice when changing notes
+    } else {
+      setNoteTitle('');
+      setNoteContent('');
+      setAiFeedback('');
     }
-  }, [activeNoteId, activeNote]); // Fixed dependencies for React Hooks
+  }, [activeNoteId, activeNote]);
 
-  const handleSaveNote = () => {
-    setNotes(prev => prev.map(n => {
-      if (n.id === activeNoteId) {
-        return { ...n, title: noteTitle, content: noteContent, updatedAt: new Date().toISOString().split('T')[0] };
-      }
-      return n;
-    }));
+  const handleSaveNote = async () => {
+    if (!activeNoteId) return;
+    setIsLoading(true);
+    try {
+      await updateLabNote(activeNoteId, noteTitle, noteContent, activeProjectId);
+      
+      setNotes(prev => prev.map(n => {
+        if (n.id === activeNoteId) {
+          return { ...n, title: noteTitle, content: noteContent, updatedAt: new Date().toISOString().split('T')[0] };
+        }
+        return n;
+      }));
 
-    // Add brief satisfying alert/feedback
-    const notification = document.createElement('div');
-    notification.className = "fixed bottom-5 right-5 bg-emerald-500 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold z-50 animate-bounce";
-    notification.innerText = language === 'ar' ? "💾 تم حفظ الملاحظة العلمية!" : "💾 Research note synchronized!";
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 2500);
+      // brief satisfying notification
+      const notification = document.createElement('div');
+      notification.className = "fixed bottom-5 right-5 bg-emerald-500 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold z-50 animate-bounce";
+      notification.innerText = language === 'ar' ? "💾 تم مزامنة وحفظ الملاحظة سحابياً!" : "💾 Note synced and saved in Appwrite!";
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 2500);
+    } catch (err) {
+      console.error("Save note error:", err);
+      alert(language === 'ar' ? 'حدث خطأ أثناء حفظ الملاحظة سحابياً' : 'Could not save note to Appwrite databases.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCreateNote = () => {
-    const newId = `note-${Date.now()}`;
-    const newN: ResearchNote = {
-      id: newId,
-      projectId: activeProjectId,
-      title: language === 'ar' ? 'سجل تجريبي غير معنون' : 'Untitled Experiment Log',
-      content: language === 'ar'
-        ? `### 🔬 دراسة تجريبية جديدة\n**التاريخ**: ${new Date().toISOString().split('T')[0]}\n\nاكتب بروتوكول التجربة والملاحظات والنتائج هنا...`
-        : `### 🔬 New Experimental Log\n**Date**: ${new Date().toISOString().split('T')[0]}\n\nInsert laboratory protocols and observed variables here...`,
-      updatedAt: new Date().toISOString().split('T')[0]
-    };
+  const handleCreateNote = async () => {
+    setIsLoading(true);
+    try {
+      const defaultTitle = language === 'ar' ? 'سجل تجريبي جديد' : 'New Experiment Log';
+      const defaultContent = language === 'ar'
+        ? `### 🔬 سجل دراسة بيولوجية\n**التاريخ**: ${new Date().toISOString().split('T')[0]}\n\nاكتب تفاصيل تجربتك البيولوجية هنا...`
+        : `### 🔬 Research Log Details\n**Date**: ${new Date().toISOString().split('T')[0]}\n\nExplain wet-lab variables, samples, and results here...`;
 
-    setNotes(prev => [...prev, newN]);
-    setActiveNoteId(newId);
+      const newN = await createLabNote(defaultTitle, defaultContent, activeProjectId);
+      setNotes(prev => [...prev, newN]);
+      setActiveNoteId(newN.id);
+    } catch (err) {
+      console.error("Create note error:", err);
+      alert(language === 'ar' ? 'فشل إنشاء ملاحظة جديدة' : 'Failed to create new cloud note.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateProject = () => {
-    const nameAr = prompt("أدخل اسم المجلد الجديد:") || "";
-    const nameEn = prompt("Enter project directory name:") || "";
-    if (!nameAr && !nameEn) return;
+    const projName = prompt(language === 'ar' ? 'أدخل اسم المجلد أو التصنيف الجديد:' : 'Enter new directory/category name:') || "";
+    if (!projName.trim()) return;
 
-    const newId = `proj-${Date.now()}`;
+    const exists = projects.some(p => p.id.toLowerCase() === projName.toLowerCase());
+    if (exists) return;
+
     const newP: ProjectFolder = {
-      id: newId,
-      nameAr: nameAr || nameEn,
-      nameEn: nameEn || nameAr,
+      id: projName,
+      nameAr: projName,
+      nameEn: projName,
       created: new Date().toISOString().split('T')[0],
       notesCount: 0
     };
 
     setProjects(prev => [...prev, newP]);
-    setActiveProjectId(newId);
+    setActiveProjectId(projName);
+    setActiveNoteId('');
   };
 
-  const handleDeleteNote = (idToDelete: string) => {
-    if (confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذه الملاحظة؟' : 'Delete this research log permanently?')) {
-      const remaining = notes.filter(n => n.id !== idToDelete);
-      setNotes(remaining);
-      if (activeNoteId === idToDelete && remaining.length > 0) {
-        setActiveNoteId(remaining[0].id);
+  const handleDeleteNote = async (idToDelete: string) => {
+    if (confirm(language === 'ar' ? 'هل أنتِ متأكدة من حذف هذه الملاحظة سحابياً؟' : 'Are you sure you want to delete this research log from Appwrite databases permanently?')) {
+      setIsLoading(true);
+      try {
+        await deleteLabNote(idToDelete);
+        const remaining = notes.filter(n => n.id !== idToDelete);
+        setNotes(remaining);
+        if (activeNoteId === idToDelete) {
+          const matched = remaining.filter(r => r.projectId === activeProjectId);
+          if (matched.length > 0) {
+            setActiveNoteId(matched[0].id);
+          } else {
+            setActiveNoteId('');
+          }
+        }
+      } catch (err) {
+        console.error("Delete note error:", err);
+        alert(language === 'ar' ? 'فشل حذف الملاحظة' : 'Could not delete the note.');
+      } finally {
+        setIsLoading(false);
       }
     }
   };
 
   // AI Evaluation service trigger
   const runAiEvaluation = async () => {
+    if (!noteContent.trim()) return;
     setIsAiEvaluating(true);
     setAiFeedback('');
     try {
@@ -129,7 +216,14 @@ export const CloudNotebook: React.FC = () => {
   const filteredNotes = notes.filter(n => n.projectId === activeProjectId);
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto relative z-10">
+
+      {isLoading && (
+        <div className="fixed top-5 left-5 bg-emerald-500/15 backdrop-blur-md border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-4 py-2 rounded-xl text-xs flex items-center gap-2 z-50">
+          <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+          <span>{language === 'ar' ? 'مزامنة مع السحاب...' : 'Syncing with Appwrite Cloud...'}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
@@ -163,6 +257,8 @@ export const CloudNotebook: React.FC = () => {
                       const matchedNotes = notes.filter(n => n.projectId === proj.id);
                       if (matchedNotes.length > 0) {
                         setActiveNoteId(matchedNotes[0].id);
+                      } else {
+                        setActiveNoteId('');
                       }
                     }}
                     className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold text-left transition-all ${
@@ -175,7 +271,7 @@ export const CloudNotebook: React.FC = () => {
                       <Folder className={`h-4 w-4 ${isActive ? 'text-emerald-500' : 'text-slate-400'}`} />
                       <span>{language === 'ar' ? proj.nameAr : proj.nameEn}</span>
                     </span>
-                    <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500">
+                    <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500 font-bold">
                       {notes.filter(n => n.projectId === proj.id).length}
                     </span>
                   </button>
@@ -242,7 +338,7 @@ export const CloudNotebook: React.FC = () => {
         {/* Rich Text Editor and AI Advice Area */}
         <div className="lg:col-span-8 space-y-6">
 
-          {filteredNotes.length > 0 ? (
+          {filteredNotes.length > 0 && activeNoteId ? (
             <div className="bg-white dark:bg-[#111827]/60 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl overflow-hidden shadow-xl flex flex-col min-h-[500px]">
 
               {/* Editor Top Toolbar */}
@@ -285,7 +381,7 @@ export const CloudNotebook: React.FC = () => {
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
                   placeholder={t.placeholderEditor}
-                  className="w-full flex-1 min-h-[300px] bg-transparent border-none resize-none focus:outline-none focus:ring-0 text-sm leading-relaxed text-slate-700 dark:text-slate-200 font-mono"
+                  className="w-full flex-1 min-h-[300px] bg-transparent border-none resize-none focus:outline-none focus:ring-0 text-xs md:text-sm leading-relaxed text-slate-700 dark:text-slate-200 font-mono"
                 />
               </div>
 

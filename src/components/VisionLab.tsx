@@ -7,9 +7,10 @@ import {
   RefreshCw,
   Cpu,
   Sparkles,
-  Grid
+  Grid,
+  Loader2
 } from 'lucide-react';
-import { performBioAiAnalysis } from '../services/bioService';
+import { performBioAiAnalysis, uploadFileToAppwrite } from '../services/bioService';
 
 // Default gorgeous scientific sample image for flawless onboarding
 const SAMPLE_MICRO_IMAGE = "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&q=80&w=600";
@@ -19,6 +20,7 @@ export const VisionLab: React.FC = () => {
   const [imageSrc, setImageSrc] = useState<string>(SAMPLE_MICRO_IMAGE);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Custom Zoom & Position states
   const [zoom, setZoom] = useState(1);
@@ -53,21 +55,39 @@ Active analysis of the cell structures yields high fidelity markers:
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setImageSrc(url);
+      setIsUploading(true);
 
-      // Update metadata randomly for organic touch
-      setMicroscopeData({
-        scale: ["400x", "1000x (Oil)", "1500x"][Math.floor(Math.random() * 3)],
-        stainUsed: ["Giemsa Stain", "Gram Stain", "Crystal Violet", "Safranin"][Math.floor(Math.random() * 4)],
-        cellCount: Math.floor(Math.random() * 120) + 40,
-        mitoticIndex: (Math.random() * 12 + 2).toFixed(1) + "%",
-        specimenClass: file.name.split('.')[0] || "Specimen-X9"
-      });
+      try {
+        // Upload file to real Appwrite Storage
+        const uploadResult = await uploadFileToAppwrite(file);
+        setImageSrc(uploadResult.fileUrl);
+
+        // Update metadata randomly for organic touch
+        setMicroscopeData({
+          scale: ["400x", "1000x (Oil)", "1500x"][Math.floor(Math.random() * 3)],
+          stainUsed: ["Giemsa Stain", "Gram Stain", "Crystal Violet", "Safranin"][Math.floor(Math.random() * 4)],
+          cellCount: Math.floor(Math.random() * 120) + 40,
+          mitoticIndex: (Math.random() * 12 + 2).toFixed(1) + "%",
+          specimenClass: file.name.split('.')[0] || "Specimen-X9"
+        });
+
+        // Small success animation or alert
+        const popup = document.createElement('div');
+        popup.className = "fixed bottom-5 right-5 bg-emerald-500 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold z-50 animate-bounce";
+        popup.innerText = language === 'ar' ? "🔬 تم رفع وتحميل صورة العينة المجهرية سحابياً!" : "🔬 Specimen image successfully uploaded to Appwrite!";
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 2500);
+
+      } catch (err) {
+        console.error("Upload specimen error:", err);
+        alert(language === 'ar' ? 'فشل الرفع السحابي لصورة العينة' : 'Failed to upload specimen image to Appwrite storage.');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -83,13 +103,21 @@ Active analysis of the cell structures yields high fidelity markers:
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setImageSrc(url);
+      setIsUploading(true);
+      try {
+        const uploadResult = await uploadFileToAppwrite(file);
+        setImageSrc(uploadResult.fileUrl);
+      } catch (err) {
+        console.error("Drop uploader error:", err);
+        alert(language === 'ar' ? 'فشل الرفع السحابي' : 'Cloud upload failed.');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -118,6 +146,7 @@ Active analysis of the cell structures yields high fidelity markers:
         ? "قم بتحليل هذه الصورة المجهرية بدقة علمية كاملة ووصف شكل وتفاصيل الخلايا وتركيبها."
         : "Analyze this microscopy image with full biological detail. Report the shape, stains, structure, cell boundary integrity and any visible cell division anomalies.";
 
+      // Feed either local file or fetch URL
       const response = await performBioAiAnalysis(prompt, imageFile, geminiKey);
       setAiAnalysisResult(response);
     } catch {
@@ -128,7 +157,7 @@ Active analysis of the cell structures yields high fidelity markers:
   };
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-7xl mx-auto">
+    <div className="space-y-8 animate-fade-in max-w-7xl mx-auto relative z-10">
 
       {/* Visual Workspace Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -175,9 +204,14 @@ Active analysis of the cell structures yields high fidelity markers:
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
                   className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
                 >
-                  <Upload className="h-3.5 w-3.5" />
+                  {isUploading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
                   <span>{t.visionBrowse}</span>
                 </button>
               </div>
@@ -306,7 +340,7 @@ Active analysis of the cell structures yields high fidelity markers:
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={runAiVisionAnalysis}
-                disabled={isAnalyzing}
+                disabled={isAnalyzing || isUploading}
                 className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 transition-all hover:scale-[1.01]"
               >
                 {isAnalyzing ? (

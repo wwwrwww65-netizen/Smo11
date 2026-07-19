@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { DEFAULT_GEMINI_KEY } from './services/bioService';
+import {
+  DEFAULT_GEMINI_KEY,
+  DEFAULT_APPWRITE_ENDPOINT,
+  DEFAULT_APPWRITE_PROJECT_ID,
+  DEFAULT_APPWRITE_DATABASE_ID,
+  DEFAULT_APPWRITE_STORAGE_BUCKET_ID,
+  reinitAppwriteClient
+} from './services/bioService';
 
 export type Language = 'ar' | 'en';
 
@@ -39,6 +46,8 @@ export type TranslationKeys = {
   apiKeyLabel: string;
   appwriteEndpoint: string;
   appwriteProject: string;
+  appwriteDatabase: string;
+  appwriteBucket: string;
   save: string;
   saveSuccess: string;
   languageLabel: string;
@@ -94,8 +103,10 @@ export const translations: Record<Language, TranslationKeys> = {
     apiKeyLabel: "مفتاح Gemini API Key للذكاء الاصطناعي",
     appwriteEndpoint: "نقطة اتصال Appwrite API Endpoint",
     appwriteProject: "معرّف مشروع Appwrite Project ID",
+    appwriteDatabase: "معرّف قاعدة بيانات Appwrite Database ID",
+    appwriteBucket: "معرّف حزمة التخزين Appwrite Bucket ID",
     save: "حفظ الإعدادات والتفعيل",
-    saveSuccess: "تم حفظ الإعدادات بنجاح والاتصال بالخوادم الحقيقية!",
+    saveSuccess: "تم حفظ الإعدادات بنجاح وتحديث الاتصال بالخوادم الحقيقية!",
     languageLabel: "لغة المنصة",
     scientificContext: "مجالات الاهتمام والتخصص الدقيق",
     bioWorkspace: "المساحة البيولوجية الذكية",
@@ -147,6 +158,8 @@ export const translations: Record<Language, TranslationKeys> = {
     apiKeyLabel: "Gemini API Key",
     appwriteEndpoint: "Appwrite Endpoint",
     appwriteProject: "Appwrite Project ID",
+    appwriteDatabase: "Appwrite Database ID",
+    appwriteBucket: "Appwrite Bucket ID",
     save: "Save & Activate Credentials",
     saveSuccess: "Credentials saved! Successfully established real-time API tunnels.",
     languageLabel: "Platform Language",
@@ -174,6 +187,15 @@ interface AppContextProps {
   t: TranslationKeys;
   geminiKey: string;
   setGeminiKey: (key: string) => void;
+  appwriteEndpoint: string;
+  setAppwriteEndpoint: (val: string) => void;
+  appwriteProjectId: string;
+  setAppwriteProjectId: (val: string) => void;
+  appwriteDatabaseId: string;
+  setAppwriteDatabaseId: (val: string) => void;
+  appwriteBucketId: string;
+  setAppwriteBucketId: (val: string) => void;
+  saveAllSettings: (ep: string, proj: string, db: string, bkt: string, gem: string) => void;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -189,6 +211,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [geminiKey, setGeminiKey] = useState<string>(() => {
     return localStorage.getItem('gemini_key') || DEFAULT_GEMINI_KEY;
+  });
+
+  const [appwriteEndpoint, setAppwriteEndpoint] = useState<string>(() => {
+    return localStorage.getItem('appwrite_endpoint') || DEFAULT_APPWRITE_ENDPOINT;
+  });
+
+  const [appwriteProjectId, setAppwriteProjectId] = useState<string>(() => {
+    return localStorage.getItem('appwrite_project_id') || DEFAULT_APPWRITE_PROJECT_ID;
+  });
+
+  const [appwriteDatabaseId, setAppwriteDatabaseId] = useState<string>(() => {
+    return localStorage.getItem('appwrite_database_id') || DEFAULT_APPWRITE_DATABASE_ID;
+  });
+
+  const [appwriteBucketId, setAppwriteBucketId] = useState<string>(() => {
+    return localStorage.getItem('appwrite_storage_bucket_id') || DEFAULT_APPWRITE_STORAGE_BUCKET_ID;
   });
 
   useEffect(() => {
@@ -209,10 +247,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setLanguage = (lang: Language) => setLanguageState(lang);
   const setTheme = (t: 'light' | 'dark') => setThemeState(t);
 
-  const saveGeminiKey = (gKey: string) => {
-    setGeminiKey(gKey);
-    if (gKey) localStorage.setItem('gemini_key', gKey);
-    else localStorage.removeItem('gemini_key');
+  const saveAllSettings = (ep: string, proj: string, db: string, bkt: string, gem: string) => {
+    localStorage.setItem('appwrite_endpoint', ep.trim());
+    localStorage.setItem('appwrite_project_id', proj.trim());
+    localStorage.setItem('appwrite_database_id', db.trim());
+    localStorage.setItem('appwrite_storage_bucket_id', bkt.trim());
+    localStorage.setItem('gemini_key', gem.trim());
+
+    setAppwriteEndpoint(ep.trim());
+    setAppwriteProjectId(proj.trim());
+    setAppwriteDatabaseId(db.trim());
+    setAppwriteBucketId(bkt.trim());
+    setGeminiKey(gem.trim());
+
+    // Trigger instant API Client reset
+    reinitAppwriteClient();
   };
 
   const t = translations[language];
@@ -225,7 +274,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTheme,
       t,
       geminiKey,
-      setGeminiKey: saveGeminiKey
+      setGeminiKey,
+      appwriteEndpoint,
+      setAppwriteEndpoint,
+      appwriteProjectId,
+      setAppwriteProjectId,
+      appwriteDatabaseId,
+      setAppwriteDatabaseId,
+      appwriteBucketId,
+      setAppwriteBucketId,
+      saveAllSettings
     }}>
       {children}
     </AppContext.Provider>

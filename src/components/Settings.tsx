@@ -331,53 +331,53 @@ export const Settings: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 
             {/* Session Card */}
-            <div className={`p-4 rounded-xl border flex flex-col justify-between h-28 ${
-              diagnosticResult.session.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'
+            <div className={`p-4 rounded-xl border flex flex-col justify-between min-h-[140px] ${
+              diagnosticResult.session.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20 shadow-md shadow-rose-500/5 animate-pulse'
             }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold">{language === 'ar' ? 'جلسة اتصال Appwrite' : 'Appwrite Session'}</span>
+              <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-slate-800/50">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{language === 'ar' ? 'جلسة اتصال Appwrite' : 'Appwrite Session'}</span>
                 {diagnosticResult.session.success ? <CheckCircle className="h-4.5 w-4.5 text-emerald-500" /> : <XCircle className="h-4.5 w-4.5 text-rose-500" />}
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 leading-tight overflow-y-auto max-h-12 font-mono">
+              <p className="text-[10px] text-slate-600 dark:text-slate-300 mt-2 leading-relaxed overflow-y-auto max-h-24 font-mono whitespace-pre-line select-text">
                 {diagnosticResult.session.message}
               </p>
             </div>
 
             {/* Database Card */}
-            <div className={`p-4 rounded-xl border flex flex-col justify-between h-28 ${
-              diagnosticResult.database.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'
+            <div className={`p-4 rounded-xl border flex flex-col justify-between min-h-[140px] ${
+              diagnosticResult.database.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20 shadow-md shadow-rose-500/5'
             }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold">{language === 'ar' ? 'قاعدة بيانات Appwrite' : 'Appwrite Database'}</span>
+              <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-slate-800/50">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{language === 'ar' ? 'قاعدة بيانات Appwrite' : 'Appwrite Database'}</span>
                 {diagnosticResult.database.success ? <CheckCircle className="h-4.5 w-4.5 text-emerald-500" /> : <XCircle className="h-4.5 w-4.5 text-rose-500" />}
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 leading-tight overflow-y-auto max-h-12 font-mono">
+              <p className="text-[10px] text-slate-600 dark:text-slate-300 mt-2 leading-relaxed overflow-y-auto max-h-24 font-mono whitespace-pre-line select-text">
                 {diagnosticResult.database.message}
               </p>
             </div>
 
             {/* Storage Card */}
-            <div className={`p-4 rounded-xl border flex flex-col justify-between h-28 ${
-              diagnosticResult.storage.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'
+            <div className={`p-4 rounded-xl border flex flex-col justify-between min-h-[140px] ${
+              diagnosticResult.storage.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20 shadow-md shadow-rose-500/5'
             }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold">{language === 'ar' ? 'مستودع المرفقات Storage' : 'Appwrite Storage'}</span>
+              <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-slate-800/50">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{language === 'ar' ? 'مستودع المرفقات Storage' : 'Appwrite Storage'}</span>
                 {diagnosticResult.storage.success ? <CheckCircle className="h-4.5 w-4.5 text-emerald-500" /> : <XCircle className="h-4.5 w-4.5 text-rose-500" />}
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 leading-tight overflow-y-auto max-h-12 font-mono">
+              <p className="text-[10px] text-slate-600 dark:text-slate-300 mt-2 leading-relaxed overflow-y-auto max-h-24 font-mono whitespace-pre-line select-text">
                 {diagnosticResult.storage.message}
               </p>
             </div>
 
             {/* Gemini API Card */}
-            <div className={`p-4 rounded-xl border flex flex-col justify-between h-28 ${
-              diagnosticResult.gemini.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'
+            <div className={`p-4 rounded-xl border flex flex-col justify-between min-h-[140px] ${
+              diagnosticResult.gemini.success ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20 shadow-md shadow-rose-500/5'
             }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold">{language === 'ar' ? 'مفتاح ذكاء Gemini AI' : 'Gemini AI Engine'}</span>
+              <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-slate-800/50">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{language === 'ar' ? 'مفتاح ذكاء Gemini AI' : 'Gemini AI Engine'}</span>
                 {diagnosticResult.gemini.success ? <CheckCircle className="h-4.5 w-4.5 text-emerald-500" /> : <XCircle className="h-4.5 w-4.5 text-rose-500" />}
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 leading-tight overflow-y-auto max-h-12 font-mono">
+              <p className="text-[10px] text-slate-600 dark:text-slate-300 mt-2 leading-relaxed overflow-y-auto max-h-24 font-mono whitespace-pre-line select-text">
                 {diagnosticResult.gemini.message}
               </p>
             </div>

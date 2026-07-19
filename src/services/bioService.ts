@@ -334,6 +334,43 @@ export const runFullDiagnostics = async (
     gemini: { success: false, message: 'Not started' }
   };
 
+  // Helper to construct highly informative bilingual diagnostics messages
+  const parseAppwriteError = (err: any): string => {
+    const rawMsg = err.message || String(err);
+    if (rawMsg.includes('Failed to fetch') || rawMsg.includes('NetworkError') || rawMsg.includes('fetch')) {
+      return `Failed to fetch (CORS / Web Platform Blocked).
+Arabic: ⚠️ هذا الخطأ يعني أن متصفحك يمنع الاتصال بخوادم Appwrite بسبب قيود الحماية (CORS). لحل هذه المشكلة، يجب عليك تسجيل رابط موقعك الحالي (مثلاً smo-a.netlify.app أو http://localhost:5173) كمنصة ويب (Web Platform) في لوحة تحكم مشروع Appwrite الخاص بك:
+1. اذهب إلى لوحة تحكم Appwrite Cloud.
+2. ادخل إلى مشروعك (ID: 6a5c48fb00236c305a1c).
+3. اختر الإعدادات (Settings) -> المنصات (Platforms).
+4. اضغط على إضافة منصة (Add Platform) -> ثم اختر تطبيق ويب (Web App).
+5. في خانة اسم الاستضافة (Hostname)، قم بإدخال "smo-a.netlify.app" ثم احفظ الإعدادات لتفعيل الاتصال فوراً.
+
+English: ⚠️ This indicates a CORS / Web Platform block. To resolve this, you must add your domain "smo-a.netlify.app" (and "localhost" if developing locally) as a Web Platform in your Appwrite Project Settings under the "Platforms" section:
+1. Go to your Appwrite Cloud Console.
+2. Select your Project (ID: 6a5c48fb00236c305a1c).
+3. Navigate to Settings -> Platforms.
+4. Click "Add Platform" -> select "Web App".
+5. Enter "smo-a.netlify.app" in the Hostname field and save.`;
+    }
+    if (rawMsg.includes('project_not_found') || rawMsg.includes('404')) {
+      return `Project Not Found (404 Error).
+Arabic: ⚠️ معرّف المشروع (Project ID) الذي أدخلته غير موجود على خادم Appwrite السحابي. يرجى التأكد من كتابة الـ Project ID بدقة تامة من لوحة تحكم Appwrite.
+English: ⚠️ The Appwrite Project ID you provided was not found on the server. Please verify you copied the exact Project ID from your Appwrite console.`;
+    }
+    return rawMsg;
+  };
+
+  const parseGeminiError = (err: any): string => {
+    const rawMsg = err.message || String(err);
+    if (rawMsg.includes('401') || rawMsg.includes('authentication credentials') || rawMsg.includes('API key') || rawMsg.includes('UNAUTHENTICATED')) {
+      return `Invalid Gemini Credentials (401 Error).
+Arabic: ⚠️ مفتاح Gemini API Key المدخل غير صالح أو انتهت صلاحيته. المفاتيح الرسمية لـ Gemini تبدأ عادةً بـ "AIzaSy". المفتاح الحالي الذي يبدأ بـ "${(geminiKey || DEFAULT_GEMINI_KEY).substring(0, 5)}..." لا يبدو بصيغة صحيحة. يرجى إنشاء مفتاح جديد وصالح من منصة Google AI Studio.
+English: ⚠️ The Gemini API key provided is invalid or has expired. Standard Gemini API keys must start with "AIzaSy". Your key starts with "${(geminiKey || DEFAULT_GEMINI_KEY).substring(0, 5)}...", which is invalid. Please create a new valid API key from Google AI Studio.`;
+    }
+    return rawMsg;
+  };
+
   // 1. Session Test
   try {
     try {
@@ -343,7 +380,7 @@ export const runFullDiagnostics = async (
     }
     result.session = { success: true, message: 'Successfully established Anonymous Session.' };
   } catch (err: any) {
-    result.session = { success: false, message: `Session creation failed: ${err.message || err}` };
+    result.session = { success: false, message: parseAppwriteError(err) };
     result.database = { success: false, message: 'Database check skipped due to session failure.' };
     result.storage = { success: false, message: 'Storage check skipped due to session failure.' };
   }
@@ -355,7 +392,7 @@ export const runFullDiagnostics = async (
       await testDatabases.listDocuments(database || DEFAULT_APPWRITE_DATABASE_ID, 'chat_history', [Query.limit(1)]);
       result.database = { success: true, message: 'Database connected and chat_history table is accessible.' };
     } catch (err: any) {
-      result.database = { success: false, message: `Database verification failed: ${err.message || err}` };
+      result.database = { success: false, message: parseAppwriteError(err) };
     }
   }
 
@@ -365,7 +402,7 @@ export const runFullDiagnostics = async (
       await testStorage.listFiles(bucket || DEFAULT_APPWRITE_STORAGE_BUCKET_ID, [Query.limit(1)]);
       result.storage = { success: true, message: 'Storage Bucket connected and accessible.' };
     } catch (err: any) {
-      result.storage = { success: false, message: `Storage verification failed: ${err.message || err}` };
+      result.storage = { success: false, message: parseAppwriteError(err) };
     }
   }
 
@@ -381,7 +418,7 @@ export const runFullDiagnostics = async (
       result.gemini = { success: false, message: 'Gemini API responded with an empty body.' };
     }
   } catch (err: any) {
-    result.gemini = { success: false, message: `Gemini API verification failed: ${err.message || err}` };
+    result.gemini = { success: false, message: parseGeminiError(err) };
   }
 
   return result;

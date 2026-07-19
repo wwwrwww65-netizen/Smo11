@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { DEFAULT_GEMINI_KEY } from './services/bioService';
 
 export type Language = 'ar' | 'en';
 
@@ -40,8 +41,6 @@ export type TranslationKeys = {
   appwriteProject: string;
   save: string;
   saveSuccess: string;
-  demoModeActive: string;
-  demoModeSub: string;
   languageLabel: string;
   scientificContext: string;
   bioWorkspace: string;
@@ -69,9 +68,9 @@ export const translations: Record<Language, TranslationKeys> = {
     settings: "الإعدادات والملف الشخصي",
     welcome: "مرحباً بكم في منصة العالمة سمو الأميرة",
     welcomeSub: "بوابة علمية ذكية مدعومة بالذكاء الاصطناعي لاستكشاف وتحليل البيانات البيولوجية بدقة فائقة.",
-    researchCount: "الأبحاث المرفوعة",
-    experimentCount: "التجارب النشطة",
-    activeSessions: "جلسات التحليل الحالية",
+    researchCount: "الأبحاث والتقارير",
+    experimentCount: "الملاحظات والنتائج",
+    activeSessions: "حالة النظام والاتصال",
     quickAccess: "وصول سريع",
     startChat: "بدء محادثة علمية",
     uploadImage: "تحليل صورة مجهرية",
@@ -86,10 +85,10 @@ export const translations: Record<Language, TranslationKeys> = {
     visionOr: "أو",
     visionBrowse: "تصفح الملفات من جهازك",
     visionAnalysis: "نتائج التحليل البصري الذكي",
-    notebookProjects: "مجلدات المشاريع البحثية",
+    notebookProjects: "مجلدات المشاريع البحثية (المجموعات)",
     notebookAnalyze: "تحليل النتائج بالذكاء الاصطناعي",
     settingsAppearance: "تخصيص المظهر وتجربة المستخدم",
-    settingsKeys: "تهيئة مفاتيح الربط السحابي والذكاء الاصطناعي",
+    settingsKeys: "مفاتيح الذكاء الاصطناعي وربط السحابي",
     themeLight: "الوضع المضيء (النهاري)",
     themeDark: "الوضع الداكن (الليلي)",
     apiKeyLabel: "مفتاح Gemini API Key للذكاء الاصطناعي",
@@ -97,8 +96,6 @@ export const translations: Record<Language, TranslationKeys> = {
     appwriteProject: "معرّف مشروع Appwrite Project ID",
     save: "حفظ الإعدادات والتفعيل",
     saveSuccess: "تم حفظ الإعدادات بنجاح والاتصال بالخوادم الحقيقية!",
-    demoModeActive: "وضع العرض التجريبي المتكامل الذكي نشط حالياً",
-    demoModeSub: "يعمل التطبيق بمحاكاة ذكية فائقة الدقة. يمكنك إدخال مفاتيحك الخاصة لتفعيل الربط المباشر بالخوادم.",
     languageLabel: "لغة المنصة",
     scientificContext: "مجالات الاهتمام والتخصص الدقيق",
     bioWorkspace: "المساحة البيولوجية الذكية",
@@ -110,7 +107,7 @@ export const translations: Record<Language, TranslationKeys> = {
     mitosisLabel: "مؤشر الانقسام الخلوي",
     notesTitle: "الملاحظات والنتائج البحثية",
     newNoteBtn: "ملاحظة جديدة",
-    newProjectBtn: "مشروع جديد",
+    newProjectBtn: "مجلد/مشروع جديد",
     saveNoteBtn: "حفظ الملاحظة",
     placeholderEditor: "اكتب ملاحظاتك وتجاربك هنا... يدعم تنسيقات Markdown والجداول والمخططات"
   },
@@ -124,9 +121,9 @@ export const translations: Record<Language, TranslationKeys> = {
     settings: "Settings & Profile",
     welcome: "Welcome to Her Highness Scientist Platform",
     welcomeSub: "A premium AI-powered workspace engineered for deep exploration and micro-analysis of biological systems.",
-    researchCount: "Uploaded Research Documents",
-    experimentCount: "Active Experiments",
-    activeSessions: "Analysis Sessions",
+    researchCount: "Research & Reports",
+    experimentCount: "Notes & Results",
+    activeSessions: "System & Cloud Status",
     quickAccess: "Quick Access",
     startChat: "Start Bio-Chat",
     uploadImage: "Analyze Microscope Image",
@@ -141,10 +138,10 @@ export const translations: Record<Language, TranslationKeys> = {
     visionOr: "or",
     visionBrowse: "Browse files from your computer",
     visionAnalysis: "Intelligent Vision Analysis",
-    notebookProjects: "Research Project Directories",
+    notebookProjects: "Research Project Directories (Categories)",
     notebookAnalyze: "Analyze Results with AI",
     settingsAppearance: "Appearance & User Experience",
-    settingsKeys: "Cloud API & AI Credentials",
+    settingsKeys: "AI Credentials & Cloud Tunneling",
     themeLight: "Light Mode",
     themeDark: "Dark Mode",
     apiKeyLabel: "Gemini API Key",
@@ -152,8 +149,6 @@ export const translations: Record<Language, TranslationKeys> = {
     appwriteProject: "Appwrite Project ID",
     save: "Save & Activate Credentials",
     saveSuccess: "Credentials saved! Successfully established real-time API tunnels.",
-    demoModeActive: "Interactive Mock-Demo Mode Active",
-    demoModeSub: "Running high-fidelity simulated bio-logic. Enter your real API keys in Settings to connect to Gemini & Appwrite live.",
     languageLabel: "Platform Language",
     scientificContext: "Scientific Fields of Interest",
     bioWorkspace: "Bio-Workspace AI",
@@ -165,7 +160,7 @@ export const translations: Record<Language, TranslationKeys> = {
     mitosisLabel: "Mitotic Index Indicator",
     notesTitle: "Scientific Notes & Logs",
     newNoteBtn: "New Note",
-    newProjectBtn: "New Project",
+    newProjectBtn: "New Folder/Project",
     saveNoteBtn: "Save Note",
     placeholderEditor: "Write research logs, experimental procedures or paste markdown tables..."
   }
@@ -179,12 +174,6 @@ interface AppContextProps {
   t: TranslationKeys;
   geminiKey: string;
   setGeminiKey: (key: string) => void;
-  appwriteEndpoint: string;
-  setAppwriteEndpoint: (ep: string) => void;
-  appwriteProjectId: string;
-  setAppwriteProjectId: (id: string) => void;
-  isDemoMode: boolean;
-  setIsDemoMode: (val: boolean) => void;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -199,26 +188,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [geminiKey, setGeminiKey] = useState<string>(() => {
-    return localStorage.getItem('gemini_key') || '';
-  });
-
-  const [appwriteEndpoint, setAppwriteEndpoint] = useState<string>(() => {
-    return localStorage.getItem('appwrite_ep') || '';
-  });
-
-  const [appwriteProjectId, setAppwriteProjectId] = useState<string>(() => {
-    return localStorage.getItem('appwrite_project_id') || '';
-  });
-
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
-    // True if any key is missing, meaning we run in Interactive Demo Mode
-    const hasKeys = !!(localStorage.getItem('gemini_key') && localStorage.getItem('appwrite_project_id'));
-    return !hasKeys;
+    return localStorage.getItem('gemini_key') || DEFAULT_GEMINI_KEY;
   });
 
   useEffect(() => {
     localStorage.setItem('lang', language);
-    // Update document dir and lang for correct RTL/LTR support
     document.documentElement.lang = language;
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   }, [language]);
@@ -235,22 +209,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setLanguage = (lang: Language) => setLanguageState(lang);
   const setTheme = (t: 'light' | 'dark') => setThemeState(t);
 
-  const saveKeys = (gKey: string, awEp: string, awProj: string) => {
+  const saveGeminiKey = (gKey: string) => {
     setGeminiKey(gKey);
-    setAppwriteEndpoint(awEp);
-    setAppwriteProjectId(awProj);
-
     if (gKey) localStorage.setItem('gemini_key', gKey);
     else localStorage.removeItem('gemini_key');
-
-    if (awEp) localStorage.setItem('appwrite_ep', awEp);
-    else localStorage.removeItem('appwrite_ep');
-
-    if (awProj) localStorage.setItem('appwrite_project_id', awProj);
-    else localStorage.removeItem('appwrite_project_id');
-
-    // Automatically toggle demo mode based on Gemini key presence
-    setIsDemoMode(!gKey);
   };
 
   const t = translations[language];
@@ -263,13 +225,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTheme,
       t,
       geminiKey,
-      setGeminiKey: (k) => saveKeys(k, appwriteEndpoint, appwriteProjectId),
-      appwriteEndpoint,
-      setAppwriteEndpoint: (ep) => saveKeys(geminiKey, ep, appwriteProjectId),
-      appwriteProjectId,
-      setAppwriteProjectId: (id) => saveKeys(geminiKey, appwriteEndpoint, id),
-      isDemoMode,
-      setIsDemoMode
+      setGeminiKey: saveGeminiKey
     }}>
       {children}
     </AppContext.Provider>

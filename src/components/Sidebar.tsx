@@ -9,8 +9,7 @@ import {
   Settings as SettingsIcon,
   Languages,
   Sun,
-  Moon,
-  Sparkles
+  Moon
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -19,7 +18,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) => {
-  const { language, setLanguage, theme, setTheme, t, isDemoMode } = useApp();
+  const { language, setLanguage, theme, setTheme, t } = useApp();
 
   const menuItems = [
     { id: 'dashboard', label: t.dashboard, icon: LayoutDashboard },
@@ -99,21 +98,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
         </div>
-
-        {/* Demo Mode Indicator pill */}
-        {isDemoMode && (
-          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl p-3 flex flex-col gap-1 text-[11px] leading-normal">
-            <div className="flex items-center gap-1.5 font-bold">
-              <Sparkles className="h-3 w-3 animate-pulse text-amber-500" />
-              <span>{language === 'ar' ? 'الوضع التجريبي نشط' : 'Demo Mode Active'}</span>
-            </div>
-            <p className="opacity-80">
-              {language === 'ar'
-                ? 'مدمج بمحاكاة ذكية متكاملة. أدخل مفاتيحك في الإعدادات.'
-                : 'Interactive simulator. Load custom API keys in Settings.'}
-            </p>
-          </div>
-        )}
 
         <div className="text-center text-[10px] text-slate-400 dark:text-slate-600">
           © 2025 HH Princess Scientist Platform

@@ -19,21 +19,14 @@ export const Settings: React.FC = () => {
     theme,
     setTheme,
     geminiKey,
-    setGeminiKey,
-    appwriteEndpoint,
-    setAppwriteEndpoint,
-    appwriteProjectId,
-    setAppwriteProjectId
+    setGeminiKey
   } = useApp();
 
   // Internal visual state for keys hiding/revealing
   const [showGemini, setShowGemini] = useState(false);
-  const [showAppwrite, setShowAppwrite] = useState(false);
 
   // Field states
   const [gKey, setGKey] = useState(geminiKey);
-  const [awEp, setAwEp] = useState(appwriteEndpoint);
-  const [awProj, setAwProj] = useState(appwriteProjectId);
 
   // Biological disciplines selected list
   const [disciplines, setDisciplines] = useState([
@@ -50,8 +43,6 @@ export const Settings: React.FC = () => {
 
   const handleSave = () => {
     setGeminiKey(gKey);
-    setAppwriteEndpoint(awEp);
-    setAppwriteProjectId(awProj);
 
     // Satisfying notification
     const popup = document.createElement('div');
@@ -62,7 +53,7 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
+    <div className="space-y-8 animate-fade-in max-w-4xl mx-auto relative z-10">
 
       {/* Settings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -192,39 +183,6 @@ export const Settings: React.FC = () => {
                   className="absolute right-3 text-slate-400 hover:text-slate-600"
                 >
                   {showGemini ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Appwrite Endpoint */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-slate-400 font-semibold block">{t.appwriteEndpoint}</label>
-              <input
-                type="text"
-                value={awEp}
-                onChange={(e) => setAwEp(e.target.value)}
-                placeholder="https://cloud.appwrite.io/v1"
-                className="w-full px-3 py-2.5 bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-emerald-500 font-mono"
-              />
-            </div>
-
-            {/* Appwrite Project ID */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-slate-400 font-semibold block">{t.appwriteProject}</label>
-              <div className="relative flex items-center">
-                <input
-                  type={showAppwrite ? 'text' : 'password'}
-                  value={awProj}
-                  onChange={(e) => setAwProj(e.target.value)}
-                  placeholder="65e8d..."
-                  className="w-full pl-3 pr-10 py-2.5 bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-emerald-500 font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowAppwrite(!showAppwrite)}
-                  className="absolute right-3 text-slate-400 hover:text-slate-600"
-                >
-                  {showAppwrite ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>

@@ -187,6 +187,8 @@ interface AppContextProps {
   t: TranslationKeys;
   geminiKey: string;
   setGeminiKey: (key: string) => void;
+  selectedModel: string;
+  setSelectedModel: (model: string) => void;
   appwriteEndpoint: string;
   setAppwriteEndpoint: (val: string) => void;
   appwriteProjectId: string;
@@ -211,6 +213,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [geminiKey, setGeminiKey] = useState<string>(() => {
     return localStorage.getItem('gemini_key') || DEFAULT_GEMINI_KEY;
+  });
+
+  const [selectedModel, setSelectedModelInternal] = useState<string>(() => {
+    return localStorage.getItem('gemini_selected_model') || 'gemini-2.5-flash';
   });
 
   const [appwriteEndpoint, setAppwriteEndpoint] = useState<string>(() => {
@@ -247,6 +253,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setLanguage = (lang: Language) => setLanguageState(lang);
   const setTheme = (t: 'light' | 'dark') => setThemeState(t);
 
+  const setSelectedModel = (model: string) => {
+    localStorage.setItem('gemini_selected_model', model.trim());
+    setSelectedModelInternal(model.trim());
+  };
+
   const saveAllSettings = (ep: string, proj: string, db: string, bkt: string, gem: string) => {
     localStorage.setItem('appwrite_endpoint', ep.trim());
     localStorage.setItem('appwrite_project_id', proj.trim());
@@ -275,6 +286,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       t,
       geminiKey,
       setGeminiKey,
+      selectedModel,
+      setSelectedModel,
       appwriteEndpoint,
       setAppwriteEndpoint,
       appwriteProjectId,

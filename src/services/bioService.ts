@@ -256,9 +256,44 @@ export const listGeminiModels = async (apiKey: string): Promise<string[]> => {
   const keyToUse = (apiKey && apiKey.trim() !== '') ? apiKey.trim() : getGeminiApiKey();
   const defaultModels = [
     'gemini-2.5-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
-    'gemini-2.5-pro'
+    'gemini-2.5-pro',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-001',
+    'gemini-2.0-flash-lite-001',
+    'gemini-2.0-flash-lite',
+    'gemini-2.5-flash-preview-tts',
+    'gemini-2.5-pro-preview-tts',
+    'gemma-4-26b-a4b-it',
+    'gemma-4-31b-it',
+    'gemini-flash-latest',
+    'gemini-flash-lite-latest',
+    'gemini-pro-latest',
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash-image',
+    'gemini-3-pro-preview',
+    'gemini-3-flash-preview',
+    'gemini-3.1-pro-preview',
+    'gemini-3.1-pro-preview-customtools',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3.1-flash-lite',
+    'gemini-3-pro-image-preview',
+    'gemini-3-pro-image',
+    'nano-banana-pro-preview',
+    'gemini-3.1-flash-image-preview',
+    'gemini-3.1-flash-image',
+    'gemini-3.1-flash-lite-image',
+    'gemini-3.5-flash',
+    'gemini-omni-flash-preview',
+    'lyria-3-clip-preview',
+    'lyria-3-pro-preview',
+    'gemini-3.1-flash-tts-preview',
+    'gemini-robotics-er-1.5-preview',
+    'gemini-robotics-er-1.6-preview',
+    'gemini-2.5-computer-use-preview-10-2025',
+    'antigravity-preview-05-2026',
+    'deep-research-max-preview-04-2026',
+    'deep-research-preview-04-2026',
+    'deep-research-pro-preview-12-2025'
   ];
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${keyToUse}`;
@@ -375,19 +410,19 @@ export const runFullDiagnostics = async (
     const rawMsg = err.message || String(err);
     if (rawMsg.includes('Failed to fetch') || rawMsg.includes('NetworkError') || rawMsg.includes('fetch')) {
       return `Failed to fetch (CORS / Web Platform Blocked).
-Arabic: ⚠️ هذا الخطأ يعني أن متصفحك يمنع الاتصال بخوادم Appwrite بسبب قيود الحماية (CORS). لحل هذه المشكلة، يجب عليك تسجيل رابط موقعك الحالي (مثلاً smo-a.netlify.app) كمنصة ويب (Web Platform) في لوحة تحكم مشروع Appwrite الخاص بك:
+Arabic: ⚠️ هذا الخطأ يعني أن متصفحك يمنع الاتصال بخوادم Appwrite بسبب قيود الحماية (CORS). لحل هذه المشكلة، يجب عليك تسجيل رابط موقعك الحالي (مثلاً smo11.appwrite.network) كمنصة ويب (Web Platform) في لوحة تحكم مشروع Appwrite الخاص بك:
 1. اذهب إلى لوحة تحكم Appwrite Cloud.
 2. ادخل إلى مشروعك (ID: 6a5c48fb00236c305a1c).
 3. اختر الإعدادات (Settings) -> المنصات (Platforms).
 4. اضغط على إضافة منصة (Add Platform) -> ثم اختر تطبيق ويب (Web App).
-5. في خانة اسم الاستضافة (Hostname)، قم بإدخال "smo-a.netlify.app" ثم احفظ الإعدادات لتفعيل الاتصال فوراً.
+5. في خانة اسم الاستضافة (Hostname)، قم بإدخال "smo11.appwrite.network" ثم احفظ الإعدادات لتفعيل الاتصال فوراً.
 
-English: ⚠️ This indicates a CORS / Web Platform block. To resolve this, you must add your domain "smo-a.netlify.app" as a Web Platform in your Appwrite Project Settings under the "Platforms" section:
+English: ⚠️ This indicates a CORS / Web Platform block. To resolve this, you must add your domain "smo11.appwrite.network" as a Web Platform in your Appwrite Project Settings under the "Platforms" section:
 1. Go to your Appwrite Cloud Console.
 2. Select your Project (ID: 6a5c48fb00236c305a1c).
 3. Navigate to Settings -> Platforms.
 4. Click "Add Platform" -> select "Web App".
-5. Enter "smo-a.netlify.app" in the Hostname field and save.`;
+5. Enter "smo11.appwrite.network" in the Hostname field and save.`;
     }
     if (rawMsg.includes('project_not_found') || rawMsg.includes('404')) {
       return `Project Not Found (404 Error).
